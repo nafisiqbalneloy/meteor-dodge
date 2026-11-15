@@ -40,8 +40,11 @@
 
     <!-- Optional touch pads -->
     <div id="pads">
-      <button id="padL" class="pad" aria-label="Move left">&#9664;</button>
-      <button id="padR" class="pad" aria-label="Move right">&#9654;</button>
+      <div class="pad-group">
+        <button id="padL" class="pad" aria-label="Move left">&#9664;</button>
+        <button id="padR" class="pad" aria-label="Move right">&#9654;</button>
+      </div>
+      <button id="padF" class="pad fire" aria-label="Fire">FIRE</button>
     </div>
 
     <div id="toast" class="toast"></div>
@@ -75,7 +78,8 @@
         <h2>HOW TO PLAY</h2>
         <ul>
           <li><b class="c-cyan">Move</b> with <kbd>&larr;</kbd> <kbd>&rarr;</kbd> / <kbd>A</kbd> <kbd>D</kbd>, or drag your finger.</li>
-          <li><b class="c-pink">Dodge</b> the meteors. You have 3 lives.</li>
+          <li><b class="c-pink">Shoot</b> meteors with <kbd>Space</kbd> (hold to auto-fire). Dragging also fires.</li>
+          <li><b class="c-pink">Dodge</b> what you can't break. You have 3 lives.</li>
           <li><b class="c-gold">Collect</b> stars for bonus points.</li>
           <li><b class="c-cyan">Shield</b> orbs make you safe for a few seconds.</li>
           <li><kbd>Esc</kbd> pauses &middot; <kbd>Space</kbd> starts.</li>

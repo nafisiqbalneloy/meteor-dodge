@@ -6,6 +6,7 @@ A free, no-signup space arcade game that runs entirely in the browser. Pilot a n
 
 - Smooth ship movement, 3 lives, brief invulnerability after a hit
 - Meteors in 3 sizes and 3 looks (rock, ice, magma) with varying speeds
+- Ship cannon: small meteors take 1 hit, medium 2, large 3 (+10 / +20 / +30 points)
 - Bonus stars (+50) and a 6-second shield power-up
 - Difficulty that ramps up every 15 seconds, plus Easy / Normal / Hard modes
 - Gentle first few seconds so new players can learn the controls
@@ -22,7 +23,8 @@ A free, no-signup space arcade game that runs entirely in the browser. Pilot a n
 | Action | Desktop | Mobile |
 | --- | --- | --- |
 | Move | Left / Right arrows or A / D | Drag a finger, or use the optional on-screen pads |
-| Start / restart | Space | Play Now / Play Again |
+| Shoot | Space (hold to auto-fire) | Auto-fires while dragging, or the FIRE pad |
+| Start / restart | Space (on menu / game-over) | Play Now / Play Again |
 | Pause / resume | Esc | Pause button |
 
 ## Technology

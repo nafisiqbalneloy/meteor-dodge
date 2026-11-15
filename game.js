@@ -35,9 +35,13 @@
   let shield = 0, invuln = 0, dyingT = 0, flash = 0, shakeT = 0, shakeMag = 0, beatBest = false, prevBest = 0;
   let spawnT = 1, starT = 4, shieldT = 18;
   const ship = { x: W / 2, y: H - 110, vx: 0, r: 15 };
-  const keys = { left: false, right: false };
-  let padDir = 0, pointerX = null;
+  const keys = { left: false, right: false, fire: false };
+  let padDir = 0, pointerX = null, padFire = false;
   const meteors = [], items = [];
+  const FIRE_COOLDOWN = 0.2, BULLET_SPEED = 780;
+  const B = [];                                  // fixed bullet pool
+  for (let i = 0; i < 28; i++) B.push({ a: false, x: 0, y: 0 });
+  let fireT = 0, bulletCursor = 0;
 
   /* ---------------- DOM refs ---------------- */
   const hudScore = $('hudScore'), hudBest = $('hudBest'), livesEl = $('lives'), powerEl = $('power'), powerBar = $('powerBar');
@@ -80,6 +84,8 @@
     star()  { tone(880, 0.08, 'triangle', 0.12); tone(1320, 0.14, 'triangle', 0.12, 0, 0.07); },
     power() { tone(300, 0.35, 'sine', 0.14, 1200); tone(600, 0.35, 'triangle', 0.06, 1800, 0.05); },
     over()  { [440, 330, 247, 165].forEach((f, i) => tone(f, 0.25, 'sawtooth', 0.09, f * 0.8, i * 0.2)); noise(0.6, 0.25); },
+    shoot() { tone(980, 0.07, 'square', 0.035, 320); },
+    boom()  { noise(0.22, 0.22); tone(220, 0.18, 'sawtooth', 0.07, 60); },
     best()  { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.15, 'square', 0.07, 0, i * 0.1)); }
   };
 
@@ -177,12 +183,13 @@
     t = 0; score = 0; shownScore = 0; scoreFrac = 0; stars = 0; lives = 3; level = 0; shield = 0; invuln = 0; flash = 0; shakeT = 0; dyingT = 0;
     beatBest = false; prevBest = best; spawnT = 1.2; starT = 5; shieldT = 20; shownHudScore = -1;
     ship.x = W / 2; ship.vx = 0; pointerX = null; padDir = 0;
-    meteors.length = 0; items.length = 0; P.forEach((p) => { p.a = false; });
+    meteors.length = 0; items.length = 0; P.forEach((p) => { p.a = false; }); B.forEach((b) => { b.a = false; });
+    fireT = 0.15; keys.fire = false; padFire = false;
     $('newBest').classList.add('hidden');
     renderLives(); renderHud(); hudBest.textContent = fmt(best);
     setState('playing'); sfx.start();
   }
-  function pauseGame() { if (state === 'playing') { setState('paused'); keys.left = keys.right = false; padDir = 0; } }
+  function pauseGame() { if (state === 'playing') { setState('paused'); keys.left = keys.right = keys.fire = false; padDir = 0; padFire = false; pointerX = null; } }
   function resumeGame() { if (state === 'paused') { setState('playing'); last = performance.now(); } }
   function toMenu() { setState('menu'); refreshMenu(); }
   function endGame() {
@@ -208,7 +215,7 @@
     const d = DIFF[difficulty], si = Math.random() < 0.42 ? 0 : Math.random() < 0.6 ? 1 : 2, sz = SIZES[si];
     const ramp = 1 + Math.min(t / 70, 1.4);
     const m = { x: rand(sz.r, W - sz.r), y: -sz.r - 12, vy: rand(150, 270) * d.speed * ramp * sz.speed, vx: t > 20 ? rand(-45, 45) : 0,
-      r: sz.r, spr: sprites[Math.floor(Math.random() * 3)][si], rot: rand(0, 6.28), vr: rand(-2, 2) };
+      r: sz.r, spr: sprites[Math.floor(Math.random() * 3)][si], rot: rand(0, 6.28), vr: rand(-2, 2), si, hp: si + 1, hit: 0 };
     meteors.push(m);
   }
   function spawnItem(kind) { items.push({ kind, x: rand(30, W - 30), y: -20, vy: 110, r: 13, ph: Math.random() * 6 }); }
@@ -252,6 +259,10 @@
     // engine particles
     if (Math.random() < 0.7) emit(ship.x + rand(-4, 4), ship.y + 26, 1, Math.random() < 0.5 ? '#ff3da8' : '#ffd36b', 60, 0.35, 2);
 
+    // shooting: Space (hold), Fire pad, or while dragging a finger / mouse
+    fireT -= dt;
+    if (fireT <= 0 && (keys.fire || padFire || pointerX !== null)) { shoot(); fireT = FIRE_COOLDOWN; }
+
     // spawning with start-up grace and progressive difficulty
     spawnT -= dt;
     if (spawnT <= 0) {
@@ -271,10 +282,36 @@
     if (beatBest) hudBest.textContent = fmt(score);
   }
 
+  function shoot() {
+    const b = B[bulletCursor]; bulletCursor = (bulletCursor + 1) % B.length;
+    b.a = true; b.x = ship.x; b.y = ship.y - 28; sfx.shoot();
+    emit(b.x, b.y, 3, '#9ff3ff', 70, 0.2, 1.8);
+  }
+  function stepBullets(dt, active) {
+    for (let i = 0; i < B.length; i++) {
+      const b = B[i]; if (!b.a) continue;
+      b.y -= BULLET_SPEED * dt;
+      if (b.y < -20 || !active) { b.a = false; continue; }
+      for (let j = 0; j < meteors.length; j++) {
+        const m = meteors[j], dx = m.x - b.x, dy = m.y - b.y, rr = m.r * 0.9 + 4;
+        if (dx * dx + dy * dy < rr * rr) {
+          b.a = false; m.hp--; m.hit = 0.09; emit(b.x, b.y, 6, '#ffd36b', 160, 0.3, 2);
+          if (m.hp <= 0) {
+            score += (m.si + 1) * 10; sfx.boom(); shake(3 + m.si * 2, 0.12);
+            emit(m.x, m.y, 14 + m.si * 10, '#ff9a4d', 220 + m.si * 40, 0.7, 3); emit(m.x, m.y, 8 + m.si * 6, '#ffffff', 160, 0.4, 2);
+            meteors.splice(j, 1);
+          }
+          break;
+        }
+      }
+    }
+  }
+
   function stepWorld(dt, active) {
     shownScore += (score - shownScore) * Math.min(1, dt * 10); if (score - shownScore < 0.5) shownScore = score;
+    stepBullets(dt, active);
     for (let i = meteors.length - 1; i >= 0; i--) {
-      const m = meteors[i]; m.y += m.vy * dt; m.x += m.vx * dt; m.rot += m.vr * dt;
+      const m = meteors[i]; m.y += m.vy * dt; m.x += m.vx * dt; m.rot += m.vr * dt; if (m.hit > 0) m.hit -= dt;
       if (m.y > H + m.r + 20 || m.x < -60 || m.x > W + 60) { meteors.splice(i, 1); continue; }
       if (active) {
         const dx = m.x - ship.x, dy = m.y - ship.y, rr = m.r * 0.82 + ship.r;
@@ -357,7 +394,11 @@
     for (let i = 0; i < items.length; i++) drawItem(items[i]);
     for (let i = 0; i < meteors.length; i++) {
       const m = meteors[i]; ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(m.rot); ctx.drawImage(m.spr, -m.spr.width / 2, -m.spr.height / 2); ctx.restore();
+      if (m.hit > 0) { ctx.globalAlpha = Math.min(0.7, m.hit * 8); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(m.x, m.y, m.r * 0.9, 0, 6.2832); ctx.fill(); ctx.globalAlpha = 1; }
     }
+    ctx.shadowColor = '#22d3ff'; ctx.shadowBlur = 10; ctx.fillStyle = '#c9fbff';
+    for (let i = 0; i < B.length; i++) { const b = B[i]; if (b.a) { ctx.fillRect(b.x - 2, b.y - 9, 4, 18); } }
+    ctx.shadowBlur = 0;
     if (state === 'playing' || state === 'paused') drawShip();
     for (let i = 0; i < P.length; i++) {
       const p = P[i]; if (!p.a) continue; ctx.globalAlpha = Math.max(0, p.l / p.m); ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 6.2832); ctx.fill();
@@ -394,7 +435,8 @@
     const k = e.key;
     if (k === ' ' || k === 'Spacebar') {
       e.preventDefault();
-      if (!e.repeat && (state === 'menu' || state === 'over')) startGame();
+      if (state === 'playing') keys.fire = true;
+      else if (!e.repeat && (state === 'menu' || state === 'over')) startGame();
       return;
     }
     if (k === 'Escape') { e.preventDefault(); if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); return; }
@@ -404,7 +446,7 @@
   });
   on(window, 'keyup', (e) => {
     const k = e.key;
-    if (k === ' ' || k === 'Spacebar') e.preventDefault();
+    if (k === ' ' || k === 'Spacebar') { e.preventDefault(); keys.fire = false; }
     if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.left = false;
     else if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.right = false;
   });
@@ -430,6 +472,13 @@
     const up = () => { if (padDir === v) padDir = 0; b.classList.remove('down'); };
     on(b, 'pointerup', up); on(b, 'pointercancel', up); on(b, 'lostpointercapture', up);
   });
+
+  { // Fire pad
+    const f = $('padF');
+    on(f, 'pointerdown', (e) => { e.preventDefault(); padFire = true; f.classList.add('down'); try { f.setPointerCapture(e.pointerId); } catch (er) { /* ignore */ } });
+    const up = () => { padFire = false; f.classList.remove('down'); };
+    on(f, 'pointerup', up); on(f, 'pointercancel', up); on(f, 'lostpointercapture', up);
+  }
 
   // buttons
   function click(id, fn) { on($(id), 'click', (e) => { audio(); fn(e); e.currentTarget.blur(); }); }
@@ -465,7 +514,7 @@
   // small hook used by the automated tests (read-only helpers; no effect on normal play)
   window.MeteorDodge = {
     get: () => ({ state, score, lives, stars, shield, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
-    step: update, startGame, pauseGame, resumeGame, ship, meteors, items, keys,
+    step: update, startGame, pauseGame, resumeGame, ship, meteors, items, keys, bullets: B,
     spawnMeteor, spawnItem, destroy
   };
 })();
