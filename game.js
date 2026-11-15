@@ -41,7 +41,7 @@
   const FIRE_COOLDOWN = 0.2, BULLET_SPEED = 780;
   const B = [];                                  // fixed bullet pool
   for (let i = 0; i < 28; i++) B.push({ a: false, x: 0, y: 0 });
-  let fireT = 0, bulletCursor = 0;
+  let fireT = 0, bulletCursor = 0, fireQueued = false;   // fireQueued: a quick tap still fires one shot
 
   /* ---------------- DOM refs ---------------- */
   const hudScore = $('hudScore'), hudBest = $('hudBest'), livesEl = $('lives'), powerEl = $('power'), powerBar = $('powerBar');
@@ -184,7 +184,7 @@
     beatBest = false; prevBest = best; spawnT = 1.2; starT = 5; shieldT = 20; shownHudScore = -1;
     ship.x = W / 2; ship.vx = 0; pointerX = null; padDir = 0;
     meteors.length = 0; items.length = 0; P.forEach((p) => { p.a = false; }); B.forEach((b) => { b.a = false; });
-    fireT = 0.15; keys.fire = false; padFire = false;
+    fireT = 0.15; keys.fire = false; padFire = false; fireQueued = false;
     $('newBest').classList.add('hidden');
     renderLives(); renderHud(); hudBest.textContent = fmt(best);
     setState('playing'); sfx.start();
@@ -261,7 +261,8 @@
 
     // shooting: Space (hold), Fire pad, or while dragging a finger / mouse
     fireT -= dt;
-    if (fireT <= 0 && (keys.fire || padFire || pointerX !== null)) { shoot(); fireT = FIRE_COOLDOWN; }
+    if (fireT <= 0 && (fireQueued || keys.fire || padFire || pointerX !== null)) { shoot(); fireT = FIRE_COOLDOWN; }
+    fireQueued = false;
 
     // spawning with start-up grace and progressive difficulty
     spawnT -= dt;
@@ -435,7 +436,7 @@
     const k = e.key;
     if (k === ' ' || k === 'Spacebar') {
       e.preventDefault();
-      if (state === 'playing') keys.fire = true;
+      if (state === 'playing') { keys.fire = true; fireQueued = true; }
       else if (!e.repeat && (state === 'menu' || state === 'over')) startGame();
       return;
     }
