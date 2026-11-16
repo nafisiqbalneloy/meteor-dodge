@@ -3,7 +3,7 @@
   'use strict';
 
   // Logical playfield: always 720 tall. Width is 480 on phones and stretches up to 1280 on wide PC screens.
-  const BASE_W = 480, MAX_W = 1280, H = 720;
+  const BASE_W = 480, MIN_W = 320, MAX_W = 2560, H = 720;
   let W = BASE_W;
   const $ = (id) => document.getElementById(id);
   const stage = $('stage'), canvas = $('game'), ctx = canvas.getContext('2d');
@@ -177,7 +177,7 @@
   }
   buildNebula();
   const starsBG = [];
-  for (let i = 0; i < 300; i++) {                // enough for the widest field; only starCount are used
+  for (let i = 0; i < 560; i++) {                // enough for the widest field; only starCount are used
     const layer = i % 3;
     starsBG.push({ x: Math.random() * MAX_W, y: Math.random() * H, s: 0.7 + layer * 0.7, v: 14 + layer * 28, ph: Math.random() * 6.28 });
   }
@@ -660,17 +660,23 @@
 
   /* ---------------- Resize ---------------- */
   function resize() {
-    const vw = Math.max(1, window.innerWidth), vh = Math.max(1, window.innerHeight), dpr = Math.min(window.devicePixelRatio || 1, 2);
-    // touch devices keep the portrait 2:3 field; mouse/keyboard devices fill the whole window (up to 16:9)
-    let coarse = false; try { coarse = window.matchMedia('(pointer: coarse)').matches; } catch (e) { /* ignore */ }
-    const nw = clamp(Math.round(H * vw / vh), BASE_W, coarse ? BASE_W : MAX_W);
+    // The playfield is always 720 tall and as wide as the window needs, so the game fills the whole screen
+    // (phone or PC, portrait or landscape) with no black bars.
+    const app = $('app'), cs = getComputedStyle(app), pad = (k) => parseFloat(cs[k]) || 0;
+    const vw = Math.max(1, window.innerWidth - pad('paddingLeft') - pad('paddingRight')), vh = Math.max(1, window.innerHeight - pad('paddingTop') - pad('paddingBottom'));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const nw = clamp(Math.round(H * vw / vh), MIN_W, MAX_W);
     if (nw !== W) {
       const old = W; W = nw; buildNebula();
       for (let i = 0; i < starsBG.length; i++) if (starsBG[i].x > W) starsBG[i].x = Math.random() * W;
       ship.x = clamp(ship.x * (W / old), 24, W - 24); pointerX = null;
+      if (boss) boss.x = clamp(boss.x, boss.r, W - boss.r);
     }
     starCount = Math.min(starsBG.length, Math.round(110 * W / BASE_W));
-    const scale = Math.min(vw / W, vh / H), sw = Math.floor(W * scale), sh = Math.floor(H * scale);
+    const scale = Math.min(vw / W, vh / H);
+    let sw = Math.round(W * scale), sh = Math.round(H * scale);
+    if (Math.abs(sw - vw) <= 2) sw = Math.round(vw);     // remove rounding gaps at the edges
+    if (Math.abs(sh - vh) <= 2) sh = Math.round(vh);
     stage.style.width = sw + 'px'; stage.style.height = sh + 'px';
     stage.style.setProperty('--u', scale + 'px');
     stage.classList.toggle('wide-layout', W >= 800);
@@ -691,6 +697,7 @@
       else if (!e.repeat && (state === 'menu' || state === 'over')) startGame();
       return;
     }
+    if (k === 'f' || k === 'F') { toggleFullscreen(); return; }
     if (k === 'Escape') { e.preventDefault(); if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); return; }
     if (k === 'ArrowLeft' || k === 'a' || k === 'A') { keys.left = true; e.preventDefault(); }
     else if (k === 'ArrowRight' || k === 'd' || k === 'D') { keys.right = true; e.preventDefault(); }
@@ -744,6 +751,16 @@
   click('btnShare', () => share(false)); click('btnShare2', () => share(true));
   document.querySelectorAll('.diff-btn:not(.ship-btn)').forEach((b) => on(b, 'click', () => { difficulty = b.dataset.diff; store.set('difficulty', difficulty); refreshMenu(); }));
 
+  /* ---------------- Fullscreen ---------------- */
+  function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+    } catch (e) { /* not allowed */ }
+  }
+  if (!document.fullscreenEnabled) $('btnFull').classList.add('hidden');
+  click('btnFull', toggleFullscreen);
+
   /* ---------------- Share ---------------- */
   async function share(withScore) {
     const url = location.href.split('#')[0];
@@ -760,7 +777,7 @@
 
   /* ---------------- Init / teardown ---------------- */
   function destroy() { stopLoop(); cleanups.splice(0).forEach((f) => f()); try { if (ac) ac.close(); } catch (e) { /* ignore */ } }
-  on(window, 'resize', resize); on(window, 'orientationchange', resize);
+  on(window, 'resize', resize); on(document, 'fullscreenchange', resize); on(window, 'orientationchange', resize);
   on(window, 'pagehide', destroy);
 
   resize(); refreshMenu(); setState('menu'); startLoop();
