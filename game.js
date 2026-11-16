@@ -46,11 +46,15 @@
   // "Squad" power-up: extra wingman planes (up to 2) that fly beside you and shoot too, for a limited time
   const SQUAD_SECS = 10, WING_X = [46, -46], WING_Y = 14, WING_SCALE = 0.75;
   let squad = 0, squadT = 0, wingSpawnT = 14;
+  // "Rapid" power-up: much faster shooting for a while. "Bomb": instantly blows up every meteor on screen.
+  const RAPID_SECS = 8, RAPID_COOLDOWN = 0.085;
+  let rapid = 0, rapidSpawnT = 22, bombSpawnT = 30;
   let fireT = 0, bulletCursor = 0, fireQueued = false;   // fireQueued: a quick tap still fires one shot
 
   /* ---------------- DOM refs ---------------- */
   const hudScore = $('hudScore'), hudBest = $('hudBest'), livesEl = $('lives'), powerEl = $('power'), powerBar = $('powerBar');
   const power2El = $('power2'), power2Label = $('power2Label'), power2Bar = $('power2Bar');
+  const power3El = $('power3'), power3Bar = $('power3Bar');
   const toastEl = $('toast');
   const screens = { menu: $('menu'), pause: $('pause'), over: $('over') };
   let shownHudScore = -1, lastToast = 0;
@@ -188,6 +192,8 @@
       power2El.classList.remove('hidden'); power2Label.textContent = squad === 1 ? 'DOUBLE SHIP' : 'TRIPLE SHIP';
       power2Bar.style.transform = 'scaleX(' + clamp(squadT / SQUAD_SECS, 0, 1).toFixed(3) + ')';
     } else power2El.classList.add('hidden');
+    if (rapid > 0) { power3El.classList.remove('hidden'); power3Bar.style.transform = 'scaleX(' + clamp(rapid / RAPID_SECS, 0, 1).toFixed(3) + ')'; }
+    else power3El.classList.add('hidden');
   }
   function popScore() { try { hudScore.animate([{ transform: 'scale(1.35)', color: '#ffd36b' }, { transform: 'scale(1)' }], { duration: 260, easing: 'ease-out' }); } catch (e) { /* old browsers */ } }
 
@@ -197,7 +203,7 @@
     beatBest = false; prevBest = best; spawnT = 1.2; starT = 5; shieldT = 20; shownHudScore = -1;
     ship.x = W / 2; ship.vx = 0; pointerX = null; padDir = 0;
     meteors.length = 0; items.length = 0; P.forEach((p) => { p.a = false; }); B.forEach((b) => { b.a = false; });
-    fireT = 0.15; keys.fire = false; padFire = false; fireQueued = false; squad = 0; squadT = 0; wingSpawnT = 14;
+    fireT = 0.15; keys.fire = false; padFire = false; fireQueued = false; squad = 0; squadT = 0; wingSpawnT = 14; rapid = 0; rapidSpawnT = 22; bombSpawnT = 30;
     $('newBest').classList.add('hidden');
     renderLives(); renderHud(); hudBest.textContent = fmt(best);
     setState('playing'); sfx.start();
@@ -274,7 +280,7 @@
 
     // shooting: Space (hold), Fire pad, or while dragging a finger / mouse
     fireT -= dt;
-    if (fireT <= 0 && (fireQueued || keys.fire || padFire || pointerX !== null)) { shoot(); fireT = FIRE_COOLDOWN; }
+    if (fireT <= 0 && (fireQueued || keys.fire || padFire || pointerX !== null)) { shoot(); fireT = rapid > 0 ? RAPID_COOLDOWN : FIRE_COOLDOWN; }
     fireQueued = false;
 
     // spawning with start-up grace and progressive difficulty
@@ -289,6 +295,9 @@
     shieldT -= dt; if (shieldT <= 0) { if (shield <= 0) spawnItem('shield'); shieldT = rand(18, 28); }
     wingSpawnT -= dt; if (wingSpawnT <= 0) { spawnItem('wing'); wingSpawnT = rand(16, 26); }
     if (squad > 0) { squadT -= dt; if (squadT <= 0) loseSquad(); }
+    rapidSpawnT -= dt; if (rapidSpawnT <= 0) { spawnItem('rapid'); rapidSpawnT = rand(20, 32); }
+    bombSpawnT -= dt; if (bombSpawnT <= 0) { spawnItem('bomb'); bombSpawnT = rand(28, 42); }
+    if (rapid > 0) rapid = Math.max(0, rapid - dt);
 
     stepWorld(dt, true);
     renderHud();
@@ -307,6 +316,15 @@
     fireBullet(ship.x, ship.y - 28);
     for (let k = 0; k < squad; k++) fireBullet(ship.x + WING_X[k], ship.y + WING_Y - 28 * WING_SCALE);
     sfx.shoot();
+  }
+  function bomb() {
+    let n = 0;
+    for (let j = meteors.length - 1; j >= 0; j--) {
+      const m = meteors[j]; score += (m.si + 1) * 10; n++;
+      emit(m.x, m.y, 14 + m.si * 8, '#ff9a4d', 240, 0.7, 3); emit(m.x, m.y, 6, '#ffffff', 160, 0.4, 2);
+    }
+    meteors.length = 0; flash = 0.5; shake(10, 0.35); sfx.boom(); sfx.power(); popScore();
+    toast(n ? 'BOOM! ' + n + ' DESTROYED' : 'BOOM!', 1300);
   }
   function loseSquad() {
     for (let k = 0; k < squad; k++) emit(ship.x + WING_X[k], ship.y + WING_Y, 24, '#a855f7', 220, 0.6, 2.8);
@@ -359,6 +377,8 @@
             for (let k = 0; k < squad; k++) emit(ship.x + WING_X[k], ship.y + WING_Y, 22, '#a855f7', 240, 0.6, 2.8);
             toast(squad === 1 ? 'DOUBLE SHIP!' : 'TRIPLE SHIP!', 1300);
           }
+          else if (it.kind === 'rapid') { rapid = RAPID_SECS; score += 25; sfx.power(); popScore(); emit(ship.x, ship.y, 24, '#ff9a4d', 240, 0.6, 2.8); toast('RAPID FIRE!', 1300); }
+          else if (it.kind === 'bomb') { bomb(); }
           else { shield = SHIELD_SECS; sfx.power(); emit(ship.x, ship.y, 30, '#22d3ff', 260, 0.7, 2.5); toast('SHIELD ON!', 1000); }
         }
       }
@@ -416,6 +436,12 @@
       ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 16; ctx.strokeStyle = '#d8b4fe'; ctx.lineWidth = 3; ctx.fillStyle = 'rgba(168,85,247,.45)';
       ctx.beginPath(); ctx.rect(-it.r, -it.r, it.r * 2, it.r * 2); ctx.fill(); ctx.stroke();
       ctx.rotate(-(it.ph * 0.5 % 6.2832)); ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '16px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('+', 1, 1);
+    } else if (it.kind === 'rapid' || it.kind === 'bomb') {
+      const c = it.kind === 'rapid' ? '#ff9a4d' : '#ff3d5a', fc = it.kind === 'rapid' ? 'rgba(255,154,77,.4)' : 'rgba(255,61,90,.4)';
+      const s = 1 + Math.sin(it.ph * 1.5) * 0.08; ctx.scale(s, s);
+      ctx.shadowColor = c; ctx.shadowBlur = 16; ctx.strokeStyle = c; ctx.lineWidth = 3; ctx.fillStyle = fc;
+      ctx.beginPath(); ctx.moveTo(0, -it.r - 3); ctx.lineTo(it.r + 3, 0); ctx.lineTo(0, it.r + 3); ctx.lineTo(-it.r - 3, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '12px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(it.kind === 'rapid' ? 'R' : 'B', 1, 1);
     } else {
       ctx.shadowColor = '#22d3ff'; ctx.shadowBlur = 16; ctx.strokeStyle = '#22d3ff'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(0, 0, it.r + Math.sin(it.ph) * 1.5, 0, 6.2832); ctx.stroke();
@@ -567,7 +593,7 @@
 
   // small hook used by the automated tests (read-only helpers; no effect on normal play)
   window.MeteorDodge = {
-    get: () => ({ W, state, score, lives, stars, shield, squad, squadT, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
+    get: () => ({ W, state, score, lives, stars, shield, squad, squadT, rapid, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
     step: update, startGame, pauseGame, resumeGame, ship, meteors, items, keys, bullets: B,
     spawnMeteor, spawnItem, destroy
   };

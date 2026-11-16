@@ -63,6 +63,11 @@ canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: 
 .icon-btn:hover { background: rgba(34, 211, 255, .25); }
 .power { margin-top: calc(14 * var(--u)); font-size: calc(10 * var(--u)); color: var(--cyan); }
 .power i { display: block; width: calc(120 * var(--u)); height: calc(10 * var(--u)); margin-top: calc(6 * var(--u)); background: rgba(34, 211, 255, .2); border: calc(2 * var(--u)) solid var(--cyan); }
+.power.orange { color: #ff9a4d; }
+.power.orange i { border-color: #ff9a4d; background: rgba(255, 154, 77, .2); }
+.power.orange b { background: #ff9a4d; }
+.c-orange { color: #ff9a4d; }
+.c-red { color: #ff3d5a; }
 .power.alt { color: var(--purple); }
 .power.alt i { border-color: var(--purple); background: rgba(168, 85, 247, .2); }
 .power.alt b { background: var(--purple); }

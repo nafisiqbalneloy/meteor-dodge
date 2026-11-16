@@ -33,6 +33,8 @@ Free. No sign-up. Works on PC and phone.
 |---|---|
 | Cyan **S** orb | Shield for 6 seconds. Meteors can't hurt you. |
 | Purple **+** box | Adds a wingman plane. Grab two for a triple ship. Every plane shoots. They vanish after 10 seconds. |
+| Orange **R** diamond | Rapid fire. You shoot much faster for 8 seconds. |
+| Red **B** diamond | Bomb. Blows up every meteor on screen. |
 
 ## RUN IT YOURSELF
 
