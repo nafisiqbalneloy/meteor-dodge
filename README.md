@@ -1,16 +1,6 @@
-```
- __  __ ______ _______ ______ ____  _____
-|  \/  |  ____|__   __|  ____/ __ \|  __ \
-| \  / | |__     | |  | |__ | |  | | |__) |
-| |\/| |  __|    | |  |  __|| |  | |  _  /
-| |  | | |____   | |  | |___| |__| | | \ \
-|_|  |_|______|  |_|  |______\____/|_|  \_\
-        ____   ____  _____   _____ ______
-       |  _ \ / __ \|  __ \ / ____|  ____|
-       | | | | |  | | |  | | |  __| |__
-       | |_| | |__| | |__| | |__| | |____
-       |____/ \____/|_____/ \_____|______|
-```
+<p align="center">
+  <img src="assets/banner.png" alt="METEOR DODGE" width="720">
+</p>
 
 A tiny retro space arcade game. Dodge the meteors, shoot what you can, grab the stars, survive.
 
@@ -68,7 +58,7 @@ style.css    the pixel look
 game.js      the game
 404.html     not-found page
 og-image.png link preview picture
-assets/      icon and font
+assets/      icon, font and banner
 ```
 
 ## LICENSE
