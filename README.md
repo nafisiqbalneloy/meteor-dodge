@@ -71,6 +71,10 @@ og-image.png link preview picture
 assets/      icon and font
 ```
 
+## LICENSE
+
+The game code is free to use and change under the MIT License (see `LICENSE`).
+
 ## CREDITS
 
 Font: [Press Start 2P](https://fonts.google.com/specimen/Press+Start+2P) by CodeMan38, under the SIL Open Font License (see `assets/OFL.txt`).
