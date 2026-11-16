@@ -14,6 +14,9 @@ A free, no-signup space arcade game that runs entirely in the browser. Pilot a n
 - Pause / resume / restart, animated menu and game-over screens
 - Original sound effects generated with the Web Audio API (sound toggle, no autoplay)
 - Best score saved in the browser (LocalStorage)
+- Retro pixel look using the self-hosted Press Start 2P font
+- Fills the whole screen on PC: the playfield widens to match your window (up to 16:9), with more meteors on wider screens so it stays fair
+- Phones and tablets keep the portrait playfield
 - Works on desktop, tablet and phone, portrait or landscape
 - Share button (Web Share API, falls back to copying the link)
 - No backend, no tracking, no external requests, no dependencies
@@ -44,6 +47,8 @@ meteor-dodge/
 ├── README.md
 └── assets/
     ├── favicon.svg
+    ├── PressStart2P-Regular.ttf   pixel font (SIL Open Font License)
+    ├── OFL.txt                    font license
     └── og-source.html   source used to render og-image.png (not needed in production)
 ```
 
@@ -99,6 +104,10 @@ Then redeploy. Platforms cache previews, so use the Facebook Sharing Debugger to
 ## Sharing with friends
 
 Send the Netlify link in any chat or post. In the game, the **Share** button opens the phone's share sheet, or copies the link on desktop.
+
+## Credits
+
+Pixel font: [Press Start 2P](https://fonts.google.com/specimen/Press+Start+2P) by CodeMan38, licensed under the SIL Open Font License 1.1 (see `assets/OFL.txt`). It is hosted with the game, so no request goes to Google.
 
 ## Privacy
 

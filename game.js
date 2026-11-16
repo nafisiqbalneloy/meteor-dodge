@@ -2,7 +2,9 @@
 (() => {
   'use strict';
 
-  const W = 480, H = 720;                       // logical game size (2:3 portrait)
+  // Logical playfield: always 720 tall. Width is 480 on phones and stretches up to 1280 on wide PC screens.
+  const BASE_W = 480, MAX_W = 1280, H = 720;
+  let W = BASE_W;
   const $ = (id) => document.getElementById(id);
   const stage = $('stage'), canvas = $('game'), ctx = canvas.getContext('2d');
 
@@ -103,18 +105,21 @@
   }
 
   /* ---------------- Background: nebula + parallax starfield ---------------- */
-  const nebula = document.createElement('canvas'); nebula.width = W; nebula.height = H;
-  (function buildNebula() {
-    const g = nebula.getContext('2d');
+  const nebula = document.createElement('canvas');
+  function buildNebula() {
+    nebula.width = W; nebula.height = H;
+    const g = nebula.getContext('2d'), k = W / BASE_W;
     g.fillStyle = '#05060f'; g.fillRect(0, 0, W, H);
-    [[100, 140, 280, 'rgba(120,40,200,.32)'], [400, 360, 300, 'rgba(255,61,168,.16)'], [160, 600, 320, 'rgba(34,211,255,.16)'], [420, 40, 200, 'rgba(34,211,255,.1)']]
+    [[100 * k, 140, 280, 'rgba(120,40,200,.32)'], [400 * k, 360, 300, 'rgba(255,61,168,.16)'], [160 * k, 600, 320, 'rgba(34,211,255,.16)'], [420 * k, 40, 200, 'rgba(34,211,255,.1)'], [W * 0.62, 220, 260, 'rgba(120,40,200,.18)']]
       .forEach(([x, y, r, c]) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, c); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); });
-  })();
-  const starsBG = [];
-  for (let i = 0; i < 110; i++) {
-    const layer = i % 3;
-    starsBG.push({ x: Math.random() * W, y: Math.random() * H, s: 0.7 + layer * 0.7, v: 14 + layer * 28, ph: Math.random() * 6.28 });
   }
+  buildNebula();
+  const starsBG = [];
+  for (let i = 0; i < 300; i++) {                // enough for the widest field; only starCount are used
+    const layer = i % 3;
+    starsBG.push({ x: Math.random() * MAX_W, y: Math.random() * H, s: 0.7 + layer * 0.7, v: 14 + layer * 28, ph: Math.random() * 6.28 });
+  }
+  let starCount = 110;
 
   /* ---------------- Meteor sprites (pre-rendered once) ---------------- */
   const PALETTES = [
@@ -223,7 +228,7 @@
   /* ---------------- Update ---------------- */
   function update(dt) {
     // background always scrolls
-    for (let i = 0; i < starsBG.length; i++) { const s = starsBG[i]; s.y += s.v * dt * (state === 'playing' ? 1 + level * 0.08 : 1); if (s.y > H) { s.y = -2; s.x = Math.random() * W; } s.ph += dt * 2; }
+    for (let i = 0; i < starCount; i++) { const s = starsBG[i]; s.y += s.v * dt * (state === 'playing' ? 1 + level * 0.08 : 1); if (s.y > H) { s.y = -2; s.x = Math.random() * W; } s.ph += dt * 2; }
     for (let i = 0; i < P.length; i++) { const p = P[i]; if (!p.a) continue; p.l -= dt; if (p.l <= 0) { p.a = false; continue; } p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.985; p.vy *= 0.985; }
     if (shakeT > 0) shakeT -= dt;
     if (flash > 0) flash -= dt;
@@ -247,7 +252,7 @@
     // ship movement
     const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0) + padDir;
     if (dir !== 0) {
-      pointerX = null; ship.vx += (clamp(dir, -1, 1) * 430 - ship.vx) * Math.min(1, dt * 12); ship.x += ship.vx * dt;
+      pointerX = null; ship.vx += (clamp(dir, -1, 1) * 430 * (1 + (W / BASE_W - 1) * 0.45) - ship.vx) * Math.min(1, dt * 12); ship.x += ship.vx * dt;
     } else if (pointerX !== null) {
       const nx = ship.x + (pointerX - ship.x) * Math.min(1, dt * 16); ship.vx = (nx - ship.x) / Math.max(dt, 1e-3); ship.x = nx;
     } else { ship.vx += (0 - ship.vx) * Math.min(1, dt * 10); ship.x += ship.vx * dt; }
@@ -268,7 +273,8 @@
     spawnT -= dt;
     if (spawnT <= 0) {
       const ramp = Math.max(0.36, 1 - t / 110), grace = t < d.grace ? 1.8 : 1;
-      spawnMeteor(); spawnT = 0.72 * d.interval * ramp * grace * rand(0.75, 1.25);
+      // wider field => proportionally more meteors, so a big screen isn't easier than a phone
+      spawnMeteor(); spawnT = 0.72 * d.interval * ramp * grace * rand(0.75, 1.25) / Math.pow(W / BASE_W, 0.8);
       if (level >= 3 && Math.random() < 0.2) spawnMeteor();
     }
     starT -= dt; if (starT <= 0) { spawnItem('star'); starT = rand(3.5, 6.5); }
@@ -379,7 +385,7 @@
       ctx.shadowColor = '#22d3ff'; ctx.shadowBlur = 16; ctx.strokeStyle = '#22d3ff'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(0, 0, it.r + Math.sin(it.ph) * 1.5, 0, 6.2832); ctx.stroke();
       ctx.fillStyle = 'rgba(34,211,255,.35)'; ctx.fill();
-      ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('S', 0, 1);
+      ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '12px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('S', 0, 1);
     }
     ctx.restore();
   }
@@ -388,7 +394,7 @@
     ctx.save();
     if (shakeT > 0) ctx.translate(rand(-1, 1) * shakeMag * Math.min(1, shakeT * 4), rand(-1, 1) * shakeMag * Math.min(1, shakeT * 4));
     ctx.drawImage(nebula, -20, -20, W + 40, H + 40);
-    for (let i = 0; i < starsBG.length; i++) {
+    for (let i = 0; i < starCount; i++) {
       const s = starsBG[i]; ctx.globalAlpha = 0.45 + 0.4 * Math.sin(s.ph); ctx.fillStyle = s.s > 1.8 ? '#cfefff' : '#fff'; ctx.fillRect(s.x, s.y, s.s, s.s);
     }
     ctx.globalAlpha = 1;
@@ -421,9 +427,21 @@
 
   /* ---------------- Resize ---------------- */
   function resize() {
-    const w = stage.clientWidth || W, dpr = Math.min(window.devicePixelRatio || 1, 2);
-    stage.style.setProperty('--u', (w / W) + 'px');
-    const pw = Math.round(w * dpr), ph = Math.round(w * (H / W) * dpr);
+    const vw = Math.max(1, window.innerWidth), vh = Math.max(1, window.innerHeight), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // touch devices keep the portrait 2:3 field; mouse/keyboard devices fill the whole window (up to 16:9)
+    let coarse = false; try { coarse = window.matchMedia('(pointer: coarse)').matches; } catch (e) { /* ignore */ }
+    const nw = clamp(Math.round(H * vw / vh), BASE_W, coarse ? BASE_W : MAX_W);
+    if (nw !== W) {
+      const old = W; W = nw; buildNebula();
+      for (let i = 0; i < starsBG.length; i++) if (starsBG[i].x > W) starsBG[i].x = Math.random() * W;
+      ship.x = clamp(ship.x * (W / old), 24, W - 24); pointerX = null;
+    }
+    starCount = Math.min(starsBG.length, Math.round(110 * W / BASE_W));
+    const scale = Math.min(vw / W, vh / H), sw = Math.floor(W * scale), sh = Math.floor(H * scale);
+    stage.style.width = sw + 'px'; stage.style.height = sh + 'px';
+    stage.style.setProperty('--u', scale + 'px');
+    stage.classList.toggle('wide-layout', W >= 800);
+    const pw = Math.round(sw * dpr), ph = Math.round(sh * dpr);
     if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph; }
     ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
   }
@@ -514,7 +532,7 @@
 
   // small hook used by the automated tests (read-only helpers; no effect on normal play)
   window.MeteorDodge = {
-    get: () => ({ state, score, lives, stars, shield, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
+    get: () => ({ W, state, score, lives, stars, shield, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
     step: update, startGame, pauseGame, resumeGame, ship, meteors, items, keys, bullets: B,
     spawnMeteor, spawnItem, destroy
   };
