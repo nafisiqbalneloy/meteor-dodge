@@ -60,6 +60,11 @@
   let rapid = 0, rapidSpawnT = 22, bombSpawnT = 30;
   let combo = 0, comboT = 0, bestCombo = 0;          // chain kills quickly to raise the score multiplier
   let boss = null, bossT = BOSS_FIRST, bossKills = 0;
+  const enemies = [];                                // little UFOs that fly across and shoot back
+  const EB = [];                                     // enemy bullet pool
+  for (let i = 0; i < 30; i++) EB.push({ a: false, x: 0, y: 0, vx: 0, vy: 0 });
+  let ebCursor = 0, enemyT = 24;
+  let gpDir = 0, gpFire = false; const gpPrev = { a: false, st: false };
   const POPS = [];                                   // floating "+30" texts (fixed pool)
   for (let i = 0; i < 24; i++) POPS.push({ a: false, x: 0, y: 0, l: 0, txt: '', c: '#fff' });
   let popCursor = 0;
@@ -216,15 +221,40 @@
   const sprites = PALETTES.map((pal) => SIZES.map((sz, si) => makeRock(pal, sz.r, METEOR_PX[si])));
   const BOSS_R = 58;
   const whiteOf = (spr) => { const c = document.createElement('canvas'); c.width = spr.width; c.height = spr.height; const g = c.getContext('2d'); g.drawImage(spr, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); return c; };
-  let bossFlashSprite = null;
-  const bossSprite = makeRock(PALETTES[2], BOSS_R, 6, (px, n) => {   // magma boss with an angry face
-    const m = Math.floor(n / 2), Y = '#ffd36b', K = '#2a0d08';
-    [-6, -5, -4].forEach((o) => px(m + o, m - 5, K)); [3, 4, 5].forEach((o) => px(m + o, m - 5, K));
-    [-5, -4].forEach((o) => { px(m + o, m - 3, Y); px(m + o, m - 2, Y); }); [3, 4].forEach((o) => { px(m + o, m - 3, Y); px(m + o, m - 2, Y); });
-    px(m - 4, m - 2, '#ff3d5a'); px(m + 3, m - 2, '#ff3d5a');
-    for (let o = -4; o <= 3; o++) { px(m + o, m + 2, o % 2 ? K : '#ffffff'); px(m + o, m + 3, K); }
-  });
-  bossFlashSprite = whiteOf(bossSprite);
+  const Y = '#ffd36b', K = '#2a0d08', RD = '#ff3d5a', WH = '#ffffff';
+  const BOSS_DECOR = [
+    (px, n) => {   // 0 MAGMA: angry face
+      const m = Math.floor(n / 2);
+      [-6, -5, -4].forEach((o) => px(m + o, m - 5, K)); [3, 4, 5].forEach((o) => px(m + o, m - 5, K));
+      [-5, -4].forEach((o) => { px(m + o, m - 3, Y); px(m + o, m - 2, Y); }); [3, 4].forEach((o) => { px(m + o, m - 3, Y); px(m + o, m - 2, Y); });
+      px(m - 4, m - 2, RD); px(m + 3, m - 2, RD);
+      for (let o = -4; o <= 3; o++) { px(m + o, m + 2, o % 2 ? K : WH); px(m + o, m + 3, K); }
+    },
+    (px, n) => {   // 1 ICE: one big eye, shoots fans of bullets
+      const m = Math.floor(n / 2);
+      for (let x = -3; x <= 2; x++) for (let y = -5; y <= -1; y++) px(m + x, m + y, WH);
+      for (let x = -1; x <= 0; x++) for (let y = -4; y <= -2; y++) px(m + x, m + y, RD);
+      px(m - 1, m - 3, K); px(m, m - 3, K);
+      for (let o = -5; o <= 4; o++) px(m + o, m + 3 + (o % 2 ? 0 : 1), K);
+    },
+    (px, n) => {   // 2 SKULL: fires laser beams
+      const m = Math.floor(n / 2);
+      [[-6, -4], [2, -4]].forEach(([x, y]) => { for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) px(m + x + i, m + y + j, K); px(m + x + 1, m + y + 1, RD); px(m + x + 2, m + y + 1, RD); });
+      px(m - 1, m, K); px(m, m, K); px(m - 1, m + 1, K); px(m, m + 1, K);
+      for (let o = -5; o <= 4; o++) { px(m + o, m + 3, o % 2 ? K : WH); px(m + o, m + 4, o % 2 ? WH : K); }
+    }
+  ];
+  const bossSprites = [0, 1, 2].map((i) => makeRock(PALETTES[[2, 1, 0][i]], BOSS_R, 6, BOSS_DECOR[i]));
+  const bossFlashSprites = bossSprites.map(whiteOf);
+  // little UFO enemy (left half of each row, mirrored)
+  const UFO_ART = ['....oo', '...owW', '..owWW', 'ooorrr', 'orrrrr', 'oyrryr', '.oddrd', '..oooo'];
+  const UFO_COL = { o: '#3a0f2a', w: '#9fe8ff', W: '#e6fbff', r: '#ff5a7a', d: '#b01e48', y: '#ffd36b' };
+  const ufoSprite = (() => {
+    const PX = 4, cv = document.createElement('canvas'); cv.width = 12 * PX; cv.height = UFO_ART.length * PX; const g = cv.getContext('2d');
+    UFO_ART.forEach((row, y) => { const full = row + row.split('').reverse().join(''); for (let x = 0; x < 12; x++) { const ch = full[x]; if (ch !== '.') { g.fillStyle = UFO_COL[ch]; g.fillRect(x * PX, y * PX, PX, PX); } } });
+    return cv;
+  })();
+  const ufoFlash = whiteOf(ufoSprite);
 
   /* ---------------- Helpers ---------------- */
   const rand = (a, b) => a + Math.random() * (b - a);
@@ -236,6 +266,7 @@
     setTimeout(() => { if (stamp === lastToast) toastEl.classList.remove('show'); }, ms || 1400);
   }
   function shake(mag, dur) { shakeMag = mag; shakeT = dur; }
+  function buzz(pattern) { if (!soundOn) return; try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) { /* not supported */ } }
   function fmt(n) { return String(Math.floor(n)); }
 
   /* ---------------- UI state ---------------- */
@@ -285,7 +316,7 @@
     ship.x = W / 2; ship.vx = 0; pointerX = null; padDir = 0;
     meteors.length = 0; items.length = 0; P.forEach((p) => { p.a = false; }); B.forEach((b) => { b.a = false; });
     fireT = 0.15; keys.fire = false; padFire = false; fireQueued = false; squad = 0; squadT = 0; wingSpawnT = 14; rapid = 0; rapidSpawnT = 22; bombSpawnT = 30;
-    combo = 0; comboT = 0; bestCombo = 0; boss = null; bossT = BOSS_FIRST; bossKills = 0; POPS.forEach((p) => { p.a = false; });
+    enemies.length = 0; EB.forEach((e) => { e.a = false; }); enemyT = 24; combo = 0; comboT = 0; bestCombo = 0; boss = null; bossT = BOSS_FIRST; bossKills = 0; POPS.forEach((p) => { p.a = false; });
     ship.r = SHIPS[shipId].r;
     $('newBest').classList.add('hidden');
     renderLives(); renderHud(); hudBest.textContent = fmt(best);
@@ -304,7 +335,7 @@
   }
 
   function hurt() {
-    lives--; combo = 0; comboT = 0; renderLives(); sfx.hit(); shake(14, 0.4); flash = 0.55;
+    lives--; combo = 0; comboT = 0; renderLives(); sfx.hit(); buzz(lives <= 0 ? [80, 40, 160] : 70); shake(14, 0.4); flash = 0.55;
     emit(ship.x, ship.y, 26, '#ff3da8', 260, 0.7, 3);
     if (lives <= 0) {
       state = 'dying'; dyingT = 1.1; music.stop(); sfx.over(); shake(26, 0.9);
@@ -323,6 +354,50 @@
   function spawnMeteorAt(x, y, si, vx, vy) {
     meteors.push({ x, y, vy, vx, r: SIZES[si].r, spr: sprites[Math.floor(Math.random() * 3)][si], rot: Math.floor(Math.random() * 4) * 1.5708, vr: 0, si, hp: si + 1, hit: 0, rt: rand(0.4, 1.1) });
   }
+  function spawnEnemy() {
+    const d = DIFF[difficulty], dir = Math.random() < 0.5 ? 1 : -1;
+    enemies.push({ x: dir > 0 ? -28 : W + 28, y: rand(90, 210), by: 0, vx: dir * rand(95, 135) * d.speed, ph: Math.random() * 6, hp: 2, hit: 0, fireT: rand(0.6, 1.1) });
+    enemies[enemies.length - 1].by = enemies[enemies.length - 1].y;
+  }
+  function killEnemy(e, i, viaBomb) {
+    enemies.splice(i, 1);
+    if (viaBomb) { score += 40; pop(e.x, e.y, '+40', '#ffffff'); } else addKill({ si: 3, x: e.x, y: e.y, r: 22 });
+    emit(e.x, e.y, 22, '#ff5a7a', 240, 0.7, 3); emit(e.x, e.y, 10, '#ffd36b', 180, 0.5, 2.5); emit(e.x, e.y, 8, '#ffffff', 140, 0.4, 2);
+    sfx.boom(); shake(5, 0.15);
+    if (!viaBomb && Math.random() < 0.4) spawnItemAt(['shield', 'wing', 'rapid', 'star', 'star'][Math.floor(Math.random() * 5)], e.x, e.y);
+  }
+  function stepEnemies(dt, active) {
+    const d = DIFF[difficulty];
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      const e = enemies[i]; e.ph += dt; e.x += e.vx * dt; e.y = e.by + Math.sin(e.ph * 2.2) * 18; if (e.hit > 0) e.hit -= dt;
+      if ((e.vx > 0 && e.x > W + 40) || (e.vx < 0 && e.x < -40)) { enemies.splice(i, 1); continue; }
+      e.fireT -= dt;
+      if (active && e.fireT <= 0 && e.x > 20 && e.x < W - 20) {
+        e.fireT = rand(1.3, 1.9);
+        const aim = Math.atan2(ship.y - e.y, ship.x - e.x) + rand(-0.12, 0.12);
+        ebFire(e.x, e.y + 10, aim, 250 * d.speed);
+      }
+      if (active && state === 'playing') {                      // touching a UFO hurts too
+        const dx = e.x - ship.x, dy = e.y - ship.y, rr = 22 + ship.r;
+        if (dx * dx + dy * dy < rr * rr) {
+          if (shield > 0) { killEnemy(e, i, false); continue; }
+          if (invuln <= 0) { emit(e.x, e.y, 16, '#ff5a7a', 220, 0.5, 3); enemies.splice(i, 1); hurt(); if (state === 'dying') return; }
+        }
+      }
+    }
+    for (let i = 0; i < EB.length; i++) {
+      const e = EB[i]; if (!e.a) continue;
+      if (!active) { e.a = false; continue; }
+      e.x += e.vx * dt; e.y += e.vy * dt;
+      if (e.y > H + 20 || e.y < -20 || e.x < -20 || e.x > W + 20) { e.a = false; continue; }
+      const dx = e.x - ship.x, dy = e.y - ship.y, rr = ship.r + 5;
+      if (dx * dx + dy * dy < rr * rr) {
+        e.a = false;
+        if (shield > 0) { emit(e.x, e.y, 10, '#22d3ff', 200, 0.4, 2.2); sfx.hit(); }
+        else if (invuln <= 0) { emit(e.x, e.y, 14, '#ff7ab0', 220, 0.5, 2.5); hurt(); if (state === 'dying') return; }
+      }
+    }
+  }
   function spawnItem(kind) { items.push({ kind, x: rand(30, W - 30), y: -20, vy: 110, r: 13, ph: Math.random() * 6 }); }
   function spawnItemAt(kind, x, y) { items.push({ kind, x: clamp(x, 30, W - 30), y, vy: 110, r: 13, ph: Math.random() * 6 }); }
   function pop(x, y, txt, c) { const p = POPS[popCursor]; popCursor = (popCursor + 1) % POPS.length; p.a = true; p.x = x; p.y = y; p.l = 0.8; p.txt = txt; p.c = c || '#fff'; }
@@ -335,10 +410,15 @@
     pop(m.x, m.y - m.r * 0.4, '+' + pts, mult > 1 ? '#ffd36b' : '#ffffff');
     if (combo % 4 === 0 && mult > 1) toast('COMBO x' + mult + '!', 700);
   }
+  const BOSS_NAMES = ['MAGMA KING', 'ICE EYE', 'LASER SKULL'];
   function spawnBoss() {
-    const d = DIFF[difficulty], hp = Math.round((34 + level * 4) * d.boss);
-    boss = { x: W / 2, y: -BOSS_R - 20, ty: 150, ph: 0, hp, max: hp, hit: 0, fireT: 1.6, r: BOSS_R };
-    toast('WARNING! BOSS!', 1800); sfx.warn(); shake(6, 0.4);
+    const d = DIFF[difficulty], hp = Math.round((34 + level * 4) * d.boss), type = bossKills % 3;
+    boss = { x: W / 2, y: -BOSS_R - 20, ty: 150, ph: 0, hp, max: hp, hit: 0, fireT: 1.6, r: BOSS_R, type, beam: null, beamT: 2.6, volley: 0 };
+    toast('WARNING! ' + BOSS_NAMES[type], 1900); sfx.warn(); shake(6, 0.4); buzz([60, 40, 60]);
+  }
+  function ebFire(x, y, ang, sp) {
+    const e = EB[ebCursor]; ebCursor = (ebCursor + 1) % EB.length;
+    e.a = true; e.x = x; e.y = y; e.vx = Math.cos(ang) * sp; e.vy = Math.sin(ang) * sp;
   }
   function stepBoss(dt) {
     if (!boss) return;
@@ -347,19 +427,41 @@
     if (boss.y < boss.ty) boss.y = Math.min(boss.ty, boss.y + 110 * dt);
     const amp = Math.max(0, (W - 2 * boss.r - 30) / 2);
     boss.x = W / 2 + Math.sin(boss.ph * (0.6 + (1 - frac) * 0.5)) * amp;
+    if (boss.y < boss.ty - 2) return;
     boss.fireT -= dt * (1 + (1 - frac) * 0.9);
-    if (boss.fireT <= 0 && boss.y >= boss.ty - 2) {
+    if (boss.type === 0 && boss.fireT <= 0) {                       // MAGMA: throws meteors
       boss.fireT = 1.15;
       const sp = rand(230, 300) * d.speed;
       spawnMeteorAt(boss.x + rand(-34, 34), boss.y + boss.r * 0.7, Math.random() < 0.7 ? 0 : 1, clamp((ship.x - boss.x) * 0.25, -90, 90), sp);
       if (frac < 0.5) spawnMeteorAt(boss.x + rand(-50, 50), boss.y + boss.r * 0.7, 0, rand(-70, 70), sp * 0.9);
+    } else if (boss.type === 1 && boss.fireT <= 0) {                // ICE: fans of bullets
+      boss.fireT = 1.6; boss.volley++;
+      const aim = Math.atan2(ship.y - boss.y, ship.x - boss.x), n = frac < 0.5 ? 5 : 3;
+      for (let k = 0; k < n; k++) ebFire(boss.x, boss.y + boss.r * 0.6, aim + (k - (n - 1) / 2) * 0.27, 240 * d.speed);
+      if (boss.volley % 2 === 0) spawnMeteorAt(boss.x + rand(-40, 40), boss.y + boss.r * 0.7, 0, rand(-60, 60), rand(230, 290) * d.speed);
+    } else if (boss.type === 2) {                                   // SKULL: aimed laser beams + a few meteors
+      if (boss.fireT <= 0) { boss.fireT = 2.2; spawnMeteorAt(boss.x + rand(-40, 40), boss.y + boss.r * 0.7, 0, rand(-70, 70), rand(230, 290) * d.speed); }
+      if (!boss.beam) {
+        boss.beamT -= dt * (1 + (1 - frac) * 0.6);
+        if (boss.beamT <= 0) boss.beam = { x: clamp(ship.x, 30, W - 30), t: 0.95, on: false };
+      } else {
+        const bm = boss.beam; bm.t -= dt;
+        if (!bm.on && bm.t <= 0) { bm.on = true; bm.t = 0.45; shake(5, 0.3); sfx.boom(); buzz(40); }
+        else if (bm.on) {
+          if (Math.abs(ship.x - bm.x) < 22 + ship.r * 0.4 && state === 'playing') {
+            if (shield > 0) { if (Math.random() < 0.3) emit(ship.x, ship.y - 20, 4, '#22d3ff', 160, 0.3, 2); }
+            else if (invuln <= 0) hurt();
+          }
+          if (bm.t <= 0) { boss.beam = null; boss.beamT = frac < 0.5 ? 1.8 : 2.6; }
+        }
+      }
     }
   }
   function defeatBoss() {
     const bx = boss.x, by = boss.y; bossKills++; boss = null; bossT = BOSS_EVERY;
     score += 500; pop(bx, by, '+500', '#ffd36b'); popScore();
     emit(bx, by, 110, '#ff9a4d', 420, 1.2, 4); emit(bx, by, 70, '#ffd36b', 320, 1.0, 3.5); emit(bx, by, 50, '#ffffff', 260, 0.8, 3);
-    shake(22, 0.7); sfx.win();
+    shake(22, 0.7); sfx.win(); buzz([40, 30, 40, 30, 140]); EB.forEach((e) => { e.a = false; });
     for (let k = -1; k <= 1; k++) spawnItemAt('star', bx + k * 60, by);
     if (lives < 3) { lives++; renderLives(); toast('BOSS DOWN! EXTRA LIFE', 1900); } else toast('BOSS DESTROYED!', 1700);
     for (let i = meteors.length - 1; i >= 0; i--) { const m = meteors[i]; emit(m.x, m.y, 8, '#ff9a4d', 200, 0.5, 2.5); }
@@ -392,7 +494,7 @@
     checkBest();
 
     // ship movement
-    const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0) + padDir;
+    const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0) + padDir + gpDir;
     if (dir !== 0) {
       pointerX = null; ship.vx += (clamp(dir, -1, 1) * 430 * SHIPS[shipId].speed * (1 + (W / BASE_W - 1) * 0.45) - ship.vx) * Math.min(1, dt * 12); ship.x += ship.vx * dt;
     } else if (pointerX !== null) {
@@ -408,7 +510,7 @@
 
     // shooting: Space (hold), Fire pad, or while dragging a finger / mouse
     fireT -= dt;
-    if (fireT <= 0 && (fireQueued || keys.fire || padFire || pointerX !== null)) { shoot(); fireT = rapid > 0 ? RAPID_COOLDOWN : SHIPS[shipId].cd; }
+    if (fireT <= 0 && (fireQueued || keys.fire || padFire || gpFire || pointerX !== null)) { shoot(); fireT = rapid > 0 ? RAPID_COOLDOWN : SHIPS[shipId].cd; }
     fireQueued = false;
 
     // spawning with start-up grace and progressive difficulty
@@ -428,6 +530,9 @@
     if (rapid > 0) rapid = Math.max(0, rapid - dt);
     if (comboT > 0) { comboT -= dt; if (comboT <= 0) combo = 0; }
     if (!boss) { bossT -= dt; if (bossT <= 0) spawnBoss(); } else stepBoss(dt);
+    if (state === 'dying') return;
+    // enemy UFOs: from about 20 seconds in, never during a boss, at most two at a time
+    enemyT -= dt; if (enemyT <= 0) { if (!boss && t > 20 && enemies.length < 2) spawnEnemy(); enemyT = rand(9, 15) * Math.max(0.6, 1 - level * 0.05) * (difficulty === 'hard' ? 0.8 : difficulty === 'easy' ? 1.3 : 1); }
 
     stepWorld(dt, true);
     renderHud();
@@ -453,6 +558,8 @@
       const m = meteors[j]; score += (m.si + 1) * 10; n++;
       emit(m.x, m.y, 14 + m.si * 8, '#ff9a4d', 240, 0.7, 3); emit(m.x, m.y, 6, '#ffffff', 160, 0.4, 2);
     }
+    for (let i = enemies.length - 1; i >= 0; i--) killEnemy(enemies[i], i, true);
+    EB.forEach((e) => { e.a = false; }); buzz(80);
     meteors.length = 0; flash = 0.5; shake(10, 0.35); sfx.boom(); sfx.power(); popScore();
     toast(n ? 'BOOM! ' + n + ' DESTROYED' : 'BOOM!', 1300);
   }
@@ -473,6 +580,16 @@
           continue;
         }
       }
+      let hitEnemy = false;
+      for (let j = 0; j < enemies.length; j++) {
+        const e = enemies[j], ex = e.x - b.x, ey = e.y - b.y;
+        if (ex * ex + ey * ey < 26 * 26) {
+          b.a = false; hitEnemy = true; e.hp--; e.hit = 0.08; emit(b.x, b.y, 5, '#ffd36b', 150, 0.3, 2);
+          if (e.hp <= 0) killEnemy(e, j, false);
+          break;
+        }
+      }
+      if (hitEnemy) continue;
       for (let j = 0; j < meteors.length; j++) {
         const m = meteors[j], dx = m.x - b.x, dy = m.y - b.y, rr = m.r * 0.9 + 4;
         if (dx * dx + dy * dy < rr * rr) {
@@ -491,6 +608,7 @@
   function stepWorld(dt, active) {
     shownScore += (score - shownScore) * Math.min(1, dt * 10); if (score - shownScore < 0.5) shownScore = score;
     stepBullets(dt, active);
+    stepEnemies(dt, active); if (state === 'dying' && active) return;
     for (let i = meteors.length - 1; i >= 0; i--) {
       const m = meteors[i]; m.y += m.vy * dt; m.x += m.vx * dt; m.rt -= dt; if (m.rt <= 0) { m.rot += 1.5708 * (Math.random() < 0.5 ? 1 : -1); m.rt = rand(0.45, 1.1); } if (m.hit > 0) m.hit -= dt;
       if (m.y > H + m.r + 20 || m.x < -60 || m.x > W + 60) { meteors.splice(i, 1); continue; }
@@ -623,11 +741,23 @@
       const m = meteors[i]; ctx.save(); ctx.imageSmoothingEnabled = false; ctx.translate(m.x, m.y); ctx.rotate(m.rot); ctx.drawImage(m.spr, -m.spr.width / 2, -m.spr.height / 2); ctx.restore();
       if (m.hit > 0) { ctx.globalAlpha = Math.min(0.7, m.hit * 8); ctx.fillStyle = '#fff'; const hs = m.spr.width * 0.7; ctx.fillRect(m.x - hs / 2, m.y - hs / 2, hs, hs); ctx.globalAlpha = 1; }
     }
-    if (boss) {
-      const bw = bossSprite.width, bob = Math.sin(boss.ph * 3) * 4;
-      ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(bossSprite, boss.x - bw / 2, boss.y - bw / 2 + bob); ctx.restore();
-      if (boss.hit > 0) { ctx.save(); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = 0.5; ctx.drawImage(bossFlashSprite, boss.x - bw / 2, boss.y - bw / 2 + bob); ctx.restore(); }
+    for (let i = 0; i < enemies.length; i++) {
+      const e = enemies[i], ex = Math.round(e.x - ufoSprite.width / 2), ey = Math.round(e.y - ufoSprite.height / 2);
+      ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(ufoSprite, ex, ey);
+      if (e.hit > 0) { ctx.globalAlpha = 0.6; ctx.drawImage(ufoFlash, ex, ey); } ctx.restore();
     }
+    if (boss) {
+      const bw = bossSprites[boss.type].width, bob = Math.sin(boss.ph * 3) * 4;
+      if (boss.beam) {   // laser: thin warning line first, then the beam
+        const bm = boss.beam, top = boss.y + boss.r * 0.5;
+        if (!bm.on) { if (Math.floor(bm.t * 12) % 2 === 0) { ctx.fillStyle = 'rgba(255,61,90,.8)'; for (let yy = top; yy < H; yy += 24) ctx.fillRect(bm.x - 2, yy, 4, 12); } }
+        else { ctx.shadowColor = '#ff3da8'; ctx.shadowBlur = 18; ctx.fillStyle = '#ff3da8'; ctx.fillRect(bm.x - 17, top, 34, H - top); ctx.fillStyle = '#ffffff'; ctx.fillRect(bm.x - 7, top, 14, H - top); ctx.shadowBlur = 0; }
+      }
+      ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(bossSprites[boss.type], boss.x - bw / 2, boss.y - bw / 2 + bob); ctx.restore();
+      if (boss.hit > 0) { ctx.save(); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = 0.5; ctx.drawImage(bossFlashSprites[boss.type], boss.x - bw / 2, boss.y - bw / 2 + bob); ctx.restore(); }
+    }
+    ctx.shadowColor = '#ff3da8'; ctx.shadowBlur = 8;
+    for (let i = 0; i < EB.length; i++) { const e = EB[i]; if (e.a) { ctx.fillStyle = '#ff7ab0'; ctx.fillRect(Math.round(e.x) - 5, Math.round(e.y) - 5, 10, 10); ctx.fillStyle = '#fff'; ctx.fillRect(Math.round(e.x) - 2, Math.round(e.y) - 2, 4, 4); } }
     ctx.shadowColor = '#22d3ff'; ctx.shadowBlur = 10; ctx.fillStyle = '#c9fbff';
     for (let i = 0; i < B.length; i++) { const b = B[i]; if (b.a) { ctx.fillRect(b.x - 2, b.y - 9, 4, 18); } }
     ctx.shadowBlur = 0;
@@ -650,8 +780,21 @@
 
   /* ---------------- Main loop (single rAF) ---------------- */
   let rafId = 0, last = 0;
+  function pollPad() {
+    let gp = null;
+    try { const l = navigator.getGamepads ? navigator.getGamepads() : []; for (let i = 0; i < l.length; i++) if (l[i] && l[i].connected) { gp = l[i]; break; } } catch (e) { /* ignore */ }
+    if (!gp) { gpDir = 0; gpFire = false; return; }
+    const bt = (i) => !!(gp.buttons[i] && gp.buttons[i].pressed), ax = gp.axes[0] || 0;
+    gpDir = bt(14) ? -1 : bt(15) ? 1 : Math.abs(ax) > 0.25 ? ax : 0;
+    gpFire = bt(0) || bt(2) || bt(5) || bt(7);
+    const a = bt(0), st = bt(9);
+    if (a && !gpPrev.a && (state === 'menu' || state === 'over')) startGame();
+    if (st && !gpPrev.st) { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); else if (state === 'menu' || state === 'over') startGame(); }
+    gpPrev.a = a; gpPrev.st = st;
+  }
   function frame(now) {
     rafId = requestAnimationFrame(frame);
+    pollPad();
     const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
     update(dt); render();
   }
@@ -788,10 +931,15 @@
 
   resize(); refreshMenu(); setState('menu'); startLoop();
 
+  // works offline / installable as an app (only on http/https, never from a file)
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* optional */ }); });
+  }
+
   // small hook used by the automated tests (read-only helpers; no effect on normal play)
   window.MeteorDodge = {
-    get: () => ({ W, state, score, lives, stars, shield, squad, squadT, rapid, combo, bestCombo, shipId, boss: boss ? { hp: boss.hp, max: boss.max, x: boss.x, y: boss.y } : null, bossKills, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
+    get: () => ({ W, state, score, lives, stars, shield, squad, squadT, rapid, combo, bestCombo, shipId, boss: boss ? { hp: boss.hp, max: boss.max, x: boss.x, y: boss.y } : null, bossKills, enemies: enemies.length, ebullets: EB.filter((e) => e.a).length, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
     step: update, startGame, pauseGame, resumeGame, ship, meteors, items, keys, bullets: B,
-    spawnMeteor, spawnItem, spawnBoss, destroy, music, setShip: (id) => { shipId = id; ship.r = SHIPS[id].r; }
+    spawnMeteor, spawnItem, spawnBoss, spawnEnemy, enemyList: enemies, eb: EB, destroy, music, setShip: (id) => { shipId = id; ship.r = SHIPS[id].r; }
   };
 })();

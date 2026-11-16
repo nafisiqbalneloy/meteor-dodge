@@ -17,6 +17,7 @@ Free. No sign-up. Works on PC and phone.
 | Move | Arrow keys or A / D | Drag your finger |
 | Shoot | Space (hold) | Auto-fires while you drag, or the FIRE button |
 | Pause | Esc | Pause button |
+| Fullscreen | F | Fullscreen button |
 
 ## HOW IT WORKS
 
@@ -24,12 +25,19 @@ Free. No sign-up. Works on PC and phone.
 - **Shoot** meteors to break them. Small ones take 1 hit, medium 2, large 3.
 - **Stars** give +50 points.
 - **Combo:** shoot meteors one after another to raise your score multiplier (up to x5). Getting hit resets it.
-- **Boss:** every minute or so a big angry meteor drops in. Shoot it down for 500 points, three stars and an extra life if you lost one.
+- **UFOs:** small red saucers fly across and shoot at you. Shoot them down for points and a chance at a power-up.
+- **Bosses:** every minute or so a big boss drops in. There are 3 kinds: the Magma King throws meteors, the Ice Eye fires fans of bullets, and the Laser Skull shoots beams (watch the red warning line). Beat one for 500 points, three stars and an extra life if you lost one.
 - **Ships:** pick STAR (balanced), DART (fast, small) or TANK (slow, shoots fast) on the menu.
 - Retro music plays while you fly. Turn it off with the MUSIC button.
 - The game gets faster every 15 seconds.
 - Pick **Easy**, **Normal** or **Hard** on the menu.
 - Your best score is saved in your browser.
+
+**Gamepad:** plug one in. Stick or D-pad to move, A / X / triggers to shoot, Start to pause.
+
+**Vibration:** phones that support it buzz on hits and boss fights. Turning SOUND off turns it off too.
+
+**Install it:** use your browser's "Install" or "Add to Home Screen" to play it like an app, even offline.
 
 ## POWER-UPS
 
@@ -60,6 +68,8 @@ HTML, CSS, plain JavaScript, Canvas and the Web Audio API. No libraries, no trac
 
 ```
 index.html   the page and menus
+manifest.json app info (install)
+sw.js        offline support
 style.css    the pixel look
 game.js      the game
 404.html     not-found page

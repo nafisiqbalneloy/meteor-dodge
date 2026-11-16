@@ -1,0 +1,15 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>icon source</title>
+<style>html,body{margin:0;width:512px;height:512px;overflow:hidden;background:#05060f}canvas{display:block}</style></head>
+<body><canvas id="c" width="512" height="512"></canvas>
+<script>
+const c = document.getElementById('c'), g = c.getContext('2d');
+const bg = g.createRadialGradient(150, 100, 20, 256, 256, 420); bg.addColorStop(0, '#2a1260'); bg.addColorStop(1, '#05060f');
+g.fillStyle = bg; g.fillRect(0, 0, 512, 512);
+g.fillStyle = '#fff'; [[60,70],[430,90],[100,400],[440,420],[250,40],[40,250],[470,260]].forEach(([x,y]) => g.fillRect(x, y, 6, 6));
+const ART = ['.......o','......ow','......ow','.....owc','.....owv','....owvv','....owcv','...owccc','o..owccc','oo.owccd','owoowccd','owcccccd','opcccccd','oppoocdd','.oo..odd','.....ood'];
+const COL = { o: '#0b3a66', w: '#ffffff', c: '#22d3ff', d: '#1688b8', p: '#ff3da8', v: '#c084fc' };
+const PX = 18, ox = (512 - 16 * PX) / 2, oy = (512 - 16 * PX) / 2 - 10;
+g.fillStyle = '#ffd36b'; g.fillRect(ox + 7 * PX, oy + 16 * PX, 2 * PX, PX); g.fillStyle = '#ff9a4d'; g.fillRect(ox + 7 * PX, oy + 17 * PX, 2 * PX, PX); g.fillStyle = '#ff3da8'; g.fillRect(ox + 7.5 * PX, oy + 18 * PX, PX, PX);
+ART.forEach((row, y) => { const full = row + row.split('').reverse().join(''); for (let x = 0; x < 16; x++) { const ch = full[x]; if (ch !== '.') { g.fillStyle = COL[ch]; g.fillRect(ox + x * PX, oy + y * PX, PX, PX); } } });
+</script></body></html>
