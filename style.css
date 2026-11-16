@@ -63,6 +63,9 @@ canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: 
 .icon-btn:hover { background: rgba(34, 211, 255, .25); }
 .power { margin-top: calc(14 * var(--u)); font-size: calc(10 * var(--u)); color: var(--cyan); }
 .power i { display: block; width: calc(120 * var(--u)); height: calc(10 * var(--u)); margin-top: calc(6 * var(--u)); background: rgba(34, 211, 255, .2); border: calc(2 * var(--u)) solid var(--cyan); }
+.power.alt { color: var(--purple); }
+.power.alt i { border-color: var(--purple); background: rgba(168, 85, 247, .2); }
+.power.alt b { background: var(--purple); }
 .power b { display: block; height: 100%; width: 100%; background: var(--cyan); transform-origin: left; }
 
 /* ---------- Touch pads ---------- */
@@ -141,7 +144,7 @@ canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: 
 .how h2 { margin: 0 0 calc(10 * var(--u)); font-size: calc(11 * var(--u)); font-weight: 400; color: var(--purple); text-align: center; }
 .how ul { margin: 0; padding: 0; list-style: none; font-size: calc(10 * var(--u)); line-height: 2; color: #d4dcff; }
 .how b { font-weight: 400; margin-right: .5em; }
-.c-cyan { color: var(--cyan); } .c-pink { color: var(--pink); } .c-gold { color: var(--gold); }
+.c-cyan { color: var(--cyan); } .c-pink { color: var(--pink); } .c-gold { color: var(--gold); } .c-purple { color: #c084fc; }
 
 .big { margin: 0; font-size: calc(36 * var(--u)); font-weight: 400; color: var(--white); text-shadow: calc(4 * var(--u)) calc(4 * var(--u)) 0 var(--cyan); }
 .over-title { color: var(--pink); text-shadow: calc(4 * var(--u)) calc(4 * var(--u)) 0 var(--purple); }

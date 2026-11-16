@@ -8,6 +8,7 @@ A free, no-signup space arcade game that runs entirely in the browser. Pilot a n
 - Meteors in 3 sizes and 3 looks (rock, ice, magma) with varying speeds
 - Ship cannon: small meteors take 1 hit, medium 2, large 3 (+10 / +20 / +30 points)
 - Bonus stars (+50) and a 6-second shield power-up
+- Squad power-up: a purple + box adds a wingman plane (double ship), a second one makes it a triple ship. Every plane shoots, and the extra planes vanish after 10 seconds
 - Difficulty that ramps up every 15 seconds, plus Easy / Normal / Hard modes
 - Gentle first few seconds so new players can learn the controls
 - Particles, screen shake, damage flash, animated score, high-score celebration

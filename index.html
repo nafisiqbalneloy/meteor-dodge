@@ -19,7 +19,7 @@
 <meta name="twitter:description" content="Dodge meteors, collect stars, and survive as long as possible in this free online arcade game.">
 <meta name="twitter:image" content="https://nafisiqbalneloy.github.io/meteor-dodge/og-image.png">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 <div id="app">
@@ -33,6 +33,7 @@
         <div id="hudScore" class="score-val">0</div>
         <div class="best-line">BEST <span id="hudBest">0</span></div>
         <div id="power" class="power hidden"><span>SHIELD</span><i><b id="powerBar"></b></i></div>
+        <div id="power2" class="power alt hidden"><span id="power2Label">DOUBLE SHIP</span><i><b id="power2Bar"></b></i></div>
       </div>
       <div id="lives" class="lives" aria-label="Lives"><span></span><span></span><span></span></div>
       <button id="btnPause" class="icon-btn" aria-label="Pause">II</button>
@@ -90,6 +91,7 @@
           <li><b class="c-pink">DODGE</b> METEORS. 3 LIVES</li>
           <li><b class="c-gold">STARS</b> GIVE BONUS POINTS</li>
           <li><b class="c-cyan">SHIELD</b> ORB = SAFE 6 SEC</li>
+          <li><b class="c-purple">SQUAD</b> + BOX = EXTRA PLANES</li>
           <li><b class="c-gold">PAUSE</b> ESC</li>
         </ul>
       </div>
@@ -119,6 +121,6 @@
   </div>
 </div>
 <noscript><p class="noscript">METEOR DODGE needs JavaScript enabled.</p></noscript>
-<script src="game.js?v=4"></script>
+<script src="game.js?v=5"></script>
 </body>
 </html>

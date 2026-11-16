@@ -42,11 +42,15 @@
   const meteors = [], items = [];
   const FIRE_COOLDOWN = 0.2, BULLET_SPEED = 780;
   const B = [];                                  // fixed bullet pool
-  for (let i = 0; i < 28; i++) B.push({ a: false, x: 0, y: 0 });
+  for (let i = 0; i < 56; i++) B.push({ a: false, x: 0, y: 0 });
+  // "Squad" power-up: extra wingman planes (up to 2) that fly beside you and shoot too, for a limited time
+  const SQUAD_SECS = 10, WING_X = [46, -46], WING_Y = 14, WING_SCALE = 0.75;
+  let squad = 0, squadT = 0, wingSpawnT = 14;
   let fireT = 0, bulletCursor = 0, fireQueued = false;   // fireQueued: a quick tap still fires one shot
 
   /* ---------------- DOM refs ---------------- */
   const hudScore = $('hudScore'), hudBest = $('hudBest'), livesEl = $('lives'), powerEl = $('power'), powerBar = $('powerBar');
+  const power2El = $('power2'), power2Label = $('power2Label'), power2Bar = $('power2Bar');
   const toastEl = $('toast');
   const screens = { menu: $('menu'), pause: $('pause'), over: $('over') };
   let shownHudScore = -1, lastToast = 0;
@@ -180,6 +184,10 @@
     if (s !== shownHudScore) { shownHudScore = s; hudScore.textContent = s; }
     if (shield > 0) { powerEl.classList.remove('hidden'); powerBar.style.transform = 'scaleX(' + (shield / SHIELD_SECS).toFixed(3) + ')'; }
     else powerEl.classList.add('hidden');
+    if (squad > 0) {
+      power2El.classList.remove('hidden'); power2Label.textContent = squad === 1 ? 'DOUBLE SHIP' : 'TRIPLE SHIP';
+      power2Bar.style.transform = 'scaleX(' + clamp(squadT / SQUAD_SECS, 0, 1).toFixed(3) + ')';
+    } else power2El.classList.add('hidden');
   }
   function popScore() { try { hudScore.animate([{ transform: 'scale(1.35)', color: '#ffd36b' }, { transform: 'scale(1)' }], { duration: 260, easing: 'ease-out' }); } catch (e) { /* old browsers */ } }
 
@@ -189,7 +197,7 @@
     beatBest = false; prevBest = best; spawnT = 1.2; starT = 5; shieldT = 20; shownHudScore = -1;
     ship.x = W / 2; ship.vx = 0; pointerX = null; padDir = 0;
     meteors.length = 0; items.length = 0; P.forEach((p) => { p.a = false; }); B.forEach((b) => { b.a = false; });
-    fireT = 0.15; keys.fire = false; padFire = false; fireQueued = false;
+    fireT = 0.15; keys.fire = false; padFire = false; fireQueued = false; squad = 0; squadT = 0; wingSpawnT = 14;
     $('newBest').classList.add('hidden');
     renderLives(); renderHud(); hudBest.textContent = fmt(best);
     setState('playing'); sfx.start();
@@ -279,6 +287,8 @@
     }
     starT -= dt; if (starT <= 0) { spawnItem('star'); starT = rand(3.5, 6.5); }
     shieldT -= dt; if (shieldT <= 0) { if (shield <= 0) spawnItem('shield'); shieldT = rand(18, 28); }
+    wingSpawnT -= dt; if (wingSpawnT <= 0) { spawnItem('wing'); wingSpawnT = rand(16, 26); }
+    if (squad > 0) { squadT -= dt; if (squadT <= 0) loseSquad(); }
 
     stepWorld(dt, true);
     renderHud();
@@ -289,10 +299,18 @@
     if (beatBest) hudBest.textContent = fmt(score);
   }
 
-  function shoot() {
+  function fireBullet(x, y) {
     const b = B[bulletCursor]; bulletCursor = (bulletCursor + 1) % B.length;
-    b.a = true; b.x = ship.x; b.y = ship.y - 28; sfx.shoot();
-    emit(b.x, b.y, 3, '#9ff3ff', 70, 0.2, 1.8);
+    b.a = true; b.x = x; b.y = y; emit(x, y, 3, '#9ff3ff', 70, 0.2, 1.8);
+  }
+  function shoot() {
+    fireBullet(ship.x, ship.y - 28);
+    for (let k = 0; k < squad; k++) fireBullet(ship.x + WING_X[k], ship.y + WING_Y - 28 * WING_SCALE);
+    sfx.shoot();
+  }
+  function loseSquad() {
+    for (let k = 0; k < squad; k++) emit(ship.x + WING_X[k], ship.y + WING_Y, 24, '#a855f7', 220, 0.6, 2.8);
+    squad = 0; squadT = 0; sfx.hit();
   }
   function stepBullets(dt, active) {
     for (let i = 0; i < B.length; i++) {
@@ -336,6 +354,11 @@
         if (dx * dx + dy * dy < rr * rr) {
           items.splice(i, 1);
           if (it.kind === 'star') { stars++; score += 50; sfx.star(); emit(it.x, it.y, 16, '#ffd36b', 200, 0.6, 2.5); popScore(); }
+          else if (it.kind === 'wing') {
+            squad = Math.min(2, squad + 1); squadT = SQUAD_SECS; score += 25; sfx.power(); popScore();
+            for (let k = 0; k < squad; k++) emit(ship.x + WING_X[k], ship.y + WING_Y, 22, '#a855f7', 240, 0.6, 2.8);
+            toast(squad === 1 ? 'DOUBLE SHIP!' : 'TRIPLE SHIP!', 1300);
+          }
           else { shield = SHIELD_SECS; sfx.power(); emit(ship.x, ship.y, 30, '#22d3ff', 260, 0.7, 2.5); toast('SHIELD ON!', 1000); }
         }
       }
@@ -343,24 +366,31 @@
   }
 
   /* ---------------- Rendering ---------------- */
+  function drawHull(wing) {
+    // flame
+    const fl = 14 + Math.random() * 12, fg = ctx.createLinearGradient(0, 22, 0, 22 + fl);
+    fg.addColorStop(0, '#ffd36b'); fg.addColorStop(0.5, '#ff3da8'); fg.addColorStop(1, 'rgba(255,61,168,0)');
+    ctx.fillStyle = fg; ctx.beginPath(); ctx.moveTo(-6, 22); ctx.lineTo(0, 22 + fl); ctx.lineTo(6, 22); ctx.closePath(); ctx.fill();
+    // hull (wingmen are tinted purple so they read as "extra" planes)
+    const hg = ctx.createLinearGradient(0, -26, 0, 24); hg.addColorStop(0, '#ffffff'); hg.addColorStop(1, wing ? '#c084fc' : '#22d3ff');
+    ctx.shadowColor = wing ? '#a855f7' : '#22d3ff'; ctx.shadowBlur = wing ? 12 : 18; ctx.fillStyle = hg; ctx.strokeStyle = wing ? '#a855f7' : '#22d3ff'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, -26); ctx.lineTo(8, -8); ctx.lineTo(24, 14); ctx.lineTo(22, 22); ctx.lineTo(10, 16); ctx.lineTo(6, 24);
+    ctx.lineTo(-6, 24); ctx.lineTo(-10, 16); ctx.lineTo(-22, 22); ctx.lineTo(-24, 14); ctx.lineTo(-8, -8); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0; ctx.strokeStyle = '#ff3da8'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-22, 22); ctx.lineTo(-10, 16); ctx.moveTo(22, 22); ctx.lineTo(10, 16); ctx.stroke();
+    const cg = ctx.createLinearGradient(0, -12, 0, 6); cg.addColorStop(0, '#c084fc'); cg.addColorStop(1, '#ff3da8');
+    ctx.fillStyle = cg; ctx.beginPath(); ctx.ellipse(0, -4, 4, 9, 0, 0, 6.2832); ctx.fill();
+  }
   function drawShip() {
-    const blink = invuln > 0 && Math.floor(t * 14) % 2 === 0;
-    ctx.save(); ctx.translate(ship.x, ship.y); ctx.rotate(clamp(ship.vx / 430, -1, 1) * 0.18);
-    if (!blink) {
-      // flame
-      const fl = 14 + Math.random() * 12, fg = ctx.createLinearGradient(0, 22, 0, 22 + fl);
-      fg.addColorStop(0, '#ffd36b'); fg.addColorStop(0.5, '#ff3da8'); fg.addColorStop(1, 'rgba(255,61,168,0)');
-      ctx.fillStyle = fg; ctx.beginPath(); ctx.moveTo(-6, 22); ctx.lineTo(0, 22 + fl); ctx.lineTo(6, 22); ctx.closePath(); ctx.fill();
-      // hull
-      const hg = ctx.createLinearGradient(0, -26, 0, 24); hg.addColorStop(0, '#ffffff'); hg.addColorStop(1, '#22d3ff');
-      ctx.shadowColor = '#22d3ff'; ctx.shadowBlur = 18; ctx.fillStyle = hg; ctx.strokeStyle = '#22d3ff'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(0, -26); ctx.lineTo(8, -8); ctx.lineTo(24, 14); ctx.lineTo(22, 22); ctx.lineTo(10, 16); ctx.lineTo(6, 24);
-      ctx.lineTo(-6, 24); ctx.lineTo(-10, 16); ctx.lineTo(-22, 22); ctx.lineTo(-24, 14); ctx.lineTo(-8, -8); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.shadowBlur = 0; ctx.strokeStyle = '#ff3da8'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(-22, 22); ctx.lineTo(-10, 16); ctx.moveTo(22, 22); ctx.lineTo(10, 16); ctx.stroke();
-      const cg = ctx.createLinearGradient(0, -12, 0, 6); cg.addColorStop(0, '#c084fc'); cg.addColorStop(1, '#ff3da8');
-      ctx.fillStyle = cg; ctx.beginPath(); ctx.ellipse(0, -4, 4, 9, 0, 0, 6.2832); ctx.fill();
+    const blink = invuln > 0 && Math.floor(t * 14) % 2 === 0, tilt = clamp(ship.vx / 430, -1, 1) * 0.18;
+    // wingmen (blink during the last 2 seconds before they vanish)
+    if (squad > 0 && !(squadT < 2 && Math.floor(t * 10) % 2 === 0)) {
+      for (let k = 0; k < squad; k++) {
+        ctx.save(); ctx.translate(ship.x + WING_X[k], ship.y + WING_Y); ctx.rotate(tilt); ctx.scale(WING_SCALE, WING_SCALE); drawHull(true); ctx.restore();
+      }
     }
+    ctx.save(); ctx.translate(ship.x, ship.y); ctx.rotate(tilt);
+    if (!blink) drawHull(false);
     ctx.restore();
     if (shield > 0 && !(shield < 1.5 && Math.floor(t * 8) % 2 === 0)) {
       ctx.save(); ctx.translate(ship.x, ship.y);
@@ -381,6 +411,11 @@
       ctx.rotate(Math.sin(it.ph) * 0.35); const s = 1 + Math.sin(it.ph * 1.5) * 0.1; ctx.scale(s, s);
       ctx.shadowColor = '#ffd36b'; ctx.shadowBlur = 16; ctx.fillStyle = '#ffe28a'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
       starPath(it.r + 4); ctx.fill(); ctx.stroke();
+    } else if (it.kind === 'wing') {
+      ctx.rotate(it.ph * 0.5 % 6.2832);
+      ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 16; ctx.strokeStyle = '#d8b4fe'; ctx.lineWidth = 3; ctx.fillStyle = 'rgba(168,85,247,.45)';
+      ctx.beginPath(); ctx.rect(-it.r, -it.r, it.r * 2, it.r * 2); ctx.fill(); ctx.stroke();
+      ctx.rotate(-(it.ph * 0.5 % 6.2832)); ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '16px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('+', 1, 1);
     } else {
       ctx.shadowColor = '#22d3ff'; ctx.shadowBlur = 16; ctx.strokeStyle = '#22d3ff'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(0, 0, it.r + Math.sin(it.ph) * 1.5, 0, 6.2832); ctx.stroke();
@@ -532,7 +567,7 @@
 
   // small hook used by the automated tests (read-only helpers; no effect on normal play)
   window.MeteorDodge = {
-    get: () => ({ W, state, score, lives, stars, shield, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
+    get: () => ({ W, state, score, lives, stars, shield, squad, squadT, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
     step: update, startGame, pauseGame, resumeGame, ship, meteors, items, keys, bullets: B,
     spawnMeteor, spawnItem, destroy
   };
