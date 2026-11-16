@@ -3,8 +3,8 @@
   'use strict';
 
   // Logical playfield: always 720 tall. Width is 480 on phones and stretches up to 1280 on wide PC screens.
-  const BASE_W = 480, MIN_W = 320, MAX_W = 2560, H = 720;
-  let W = BASE_W;
+  const BASE_W = 480, BASE_H = 720, MAX_W = 2560, MAX_H = 1200;
+  let W = BASE_W, H = BASE_H;
   const $ = (id) => document.getElementById(id);
   const stage = $('stage'), canvas = $('game'), ctx = canvas.getContext('2d');
 
@@ -665,14 +665,19 @@
     const app = $('app'), cs = getComputedStyle(app), pad = (k) => parseFloat(cs[k]) || 0;
     const vw = Math.max(1, window.innerWidth - pad('paddingLeft') - pad('paddingRight')), vh = Math.max(1, window.innerHeight - pad('paddingTop') - pad('paddingBottom'));
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const nw = clamp(Math.round(H * vw / vh), MIN_W, MAX_W);
-    if (nw !== W) {
-      const old = W; W = nw; buildNebula();
-      for (let i = 0; i < starsBG.length; i++) if (starsBG[i].x > W) starsBG[i].x = Math.random() * W;
-      ship.x = clamp(ship.x * (W / old), 24, W - 24); pointerX = null;
+    // Wide screens get a wider field (720 tall). Tall, narrow screens (phones) get a 480-wide field that is taller,
+    // so objects keep a comfortable size instead of being blown up.
+    const aspect = vw / vh;
+    let nw, nh;
+    if (aspect < BASE_W / BASE_H) { nw = BASE_W; nh = clamp(Math.round(BASE_W / aspect), BASE_H, MAX_H); }
+    else { nh = BASE_H; nw = clamp(Math.round(BASE_H * aspect), BASE_W, MAX_W); }
+    if (nw !== W || nh !== H) {
+      const oldW = W, oldH = H; W = nw; H = nh; buildNebula();
+      for (let i = 0; i < starsBG.length; i++) { if (starsBG[i].x > W) starsBG[i].x = Math.random() * W; starsBG[i].y = starsBG[i].y / oldH * H; }
+      ship.x = clamp(ship.x * (W / oldW), 24, W - 24); ship.y = H - 110; pointerX = null;
       if (boss) boss.x = clamp(boss.x, boss.r, W - boss.r);
     }
-    starCount = Math.min(starsBG.length, Math.round(110 * W / BASE_W));
+    starCount = Math.min(starsBG.length, Math.round(110 * (W / BASE_W) * (H / BASE_H)));
     const scale = Math.min(vw / W, vh / H);
     let sw = Math.round(W * scale), sh = Math.round(H * scale);
     if (Math.abs(sw - vw) <= 2) sw = Math.round(vw);     // remove rounding gaps at the edges
@@ -777,7 +782,8 @@
 
   /* ---------------- Init / teardown ---------------- */
   function destroy() { stopLoop(); cleanups.splice(0).forEach((f) => f()); try { if (ac) ac.close(); } catch (e) { /* ignore */ } }
-  on(window, 'resize', resize); on(document, 'fullscreenchange', resize); on(window, 'orientationchange', resize);
+  on(window, 'resize', resize); on(document, 'fullscreenchange', resize);
+  if (window.visualViewport) on(window.visualViewport, 'resize', resize); on(window, 'orientationchange', resize);
   on(window, 'pagehide', destroy);
 
   resize(); refreshMenu(); setState('menu'); startLoop();
