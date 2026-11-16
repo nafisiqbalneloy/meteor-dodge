@@ -131,27 +131,32 @@
 
   /* ---------------- Meteor sprites (pre-rendered once) ---------------- */
   const PALETTES = [
-    { a: '#8d7f78', b: '#4a403c', rim: 'rgba(255,200,150,.35)', crater: 'rgba(30,22,20,.55)' },   // rock
-    { a: '#9fd8ff', b: '#3a6ea0', rim: 'rgba(200,245,255,.6)',  crater: 'rgba(20,50,90,.45)' },    // ice
-    { a: '#b0452b', b: '#3a1410', rim: 'rgba(255,140,60,.75)',  crater: 'rgba(255,120,40,.5)' }    // magma
+    { hi: '#b5a79d', mid: '#8d7f78', lo: '#5a4f4a', out: '#1e1715', cr: '#3b322e' },   // rock
+    { hi: '#d6f2ff', mid: '#9fd8ff', lo: '#4f86b8', out: '#14304f', cr: '#3a6ea0' },   // ice
+    { hi: '#e0643a', mid: '#b0452b', lo: '#6a2318', out: '#2a0d08', cr: '#ffb04d' }    // magma
   ];
-  const sprites = PALETTES.map((pal) => SIZES.map((sz) => {
-    const r = sz.r, S = Math.ceil(r * 2 + 12), c = document.createElement('canvas'); c.width = c.height = S;
-    const g = c.getContext('2d'); g.translate(S / 2, S / 2);
-    const n = 11 + Math.floor(r / 6), pts = [];
-    for (let i = 0; i < n; i++) { const a = i / n * 6.2832, k = 0.78 + Math.random() * 0.26; pts.push([Math.cos(a) * r * k, Math.sin(a) * r * k]); }
-    g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath();
-    const gr = g.createRadialGradient(-r * 0.4, -r * 0.4, r * 0.1, 0, 0, r * 1.1); gr.addColorStop(0, pal.a); gr.addColorStop(1, pal.b);
-    g.shadowColor = pal.rim; g.shadowBlur = 6; g.fillStyle = gr; g.fill();
-    g.shadowBlur = 0; g.lineWidth = 1.5; g.strokeStyle = pal.rim; g.stroke();
-    g.save(); g.clip();
-    for (let i = 0; i < 3 + r / 8; i++) {
-      const cx = (Math.random() - 0.5) * r * 1.1, cy = (Math.random() - 0.5) * r * 1.1, cr = r * (0.1 + Math.random() * 0.18);
-      g.fillStyle = pal.crater; g.beginPath(); g.arc(cx, cy, cr, 0, 6.2832); g.fill();
-      g.strokeStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.arc(cx - 0.8, cy - 0.8, cr, 3.6, 5.7); g.stroke();
+  const METEOR_PX = [3, 4, 4];                     // size of one "art pixel" for small / medium / large meteors
+  const sprites = PALETTES.map((pal) => SIZES.map((sz, si) => {
+    // draw the meteor on a tiny grid, one square per art pixel, so it looks like real pixel art
+    const PX = METEOR_PX[si], n = Math.ceil(sz.r * 2 / PX), c = (n - 1) / 2, R = n / 2;
+    const bump = []; for (let i = 0; i < 12; i++) bump.push(0.8 + Math.random() * 0.2);
+    const inside = (x, y) => {
+      if (x < 0 || y < 0 || x >= n || y >= n) return false;
+      const dx = x - c, dy = y - c, ang = (Math.atan2(dy, dx) + 3.1416) / 6.2832 * 12, i0 = Math.floor(ang) % 12, f = ang - Math.floor(ang);
+      const lim = R * (bump[i0] * (1 - f) + bump[(i0 + 1) % 12] * f);
+      return Math.sqrt(dx * dx + dy * dy) <= lim;
+    };
+    const cv = document.createElement('canvas'); cv.width = cv.height = n * PX; const g = cv.getContext('2d');
+    const px = (x, y, col) => { g.fillStyle = col; g.fillRect(x * PX, y * PX, PX, PX); };
+    const crater = new Set(); const nc = 2 + Math.floor(n / 6);
+    for (let k = 0; k < nc; k++) { const cx = Math.floor(c - R * 0.5 + Math.random() * R), cy = Math.floor(c - R * 0.5 + Math.random() * R), w = n > 12 ? 2 : 1; for (let u = 0; u < w; u++) for (let v = 0; v < w; v++) crater.add((cx + u) + ',' + (cy + v)); }
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      if (!inside(x, y)) continue;
+      if (!inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1)) { px(x, y, pal.out); continue; }
+      const sh = ((x - c) + (y - c)) / (R * 2);
+      px(x, y, crater.has(x + ',' + y) ? pal.cr : sh < -0.22 ? pal.hi : sh < 0.18 ? pal.mid : pal.lo);
     }
-    g.restore();
-    return c;
+    return cv;
   }));
 
   /* ---------------- Helpers ---------------- */
@@ -234,7 +239,7 @@
     const d = DIFF[difficulty], si = Math.random() < 0.42 ? 0 : Math.random() < 0.6 ? 1 : 2, sz = SIZES[si];
     const ramp = 1 + Math.min(t / 70, 1.4);
     const m = { x: rand(sz.r, W - sz.r), y: -sz.r - 12, vy: rand(150, 270) * d.speed * ramp * sz.speed, vx: t > 20 ? rand(-45, 45) : 0,
-      r: sz.r, spr: sprites[Math.floor(Math.random() * 3)][si], rot: rand(0, 6.28), vr: rand(-2, 2), si, hp: si + 1, hit: 0 };
+      r: sz.r, spr: sprites[Math.floor(Math.random() * 3)][si], rot: Math.floor(Math.random() * 4) * 1.5708, vr: 0, si, hp: si + 1, hit: 0 };
     meteors.push(m);
   }
   function spawnItem(kind) { items.push({ kind, x: rand(30, W - 30), y: -20, vy: 110, r: 13, ph: Math.random() * 6 }); }
@@ -386,30 +391,44 @@
   }
 
   /* ---------------- Rendering ---------------- */
+  // Pixel-art ship: left half of each row, mirrored to make the full plane (16 x 16 art pixels)
+  const SHIP_ART = [
+    '.......o', '......ow', '......ow', '.....owc', '.....owv', '....owvv', '....owcv', '...owccc',
+    'o..owccc', 'oo.owccd', 'owoowccd', 'owcccccd', 'opcccccd', 'oppoocdd', '.oo..odd', '.....ood'
+  ];
+  const SHIP_PX = 3;
+  const SHIP_COLORS = {
+    ship: { o: '#0b3a66', w: '#ffffff', c: '#22d3ff', d: '#1688b8', p: '#ff3da8', v: '#c084fc' },
+    wing: { o: '#3b1768', w: '#f3e8ff', c: '#c084fc', d: '#8b4fd0', p: '#ff3da8', v: '#ffd36b' }
+  };
+  const shipSprites = {};
+  Object.keys(SHIP_COLORS).forEach((key) => {
+    const col = SHIP_COLORS[key], cv = document.createElement('canvas'); cv.width = cv.height = 16 * SHIP_PX; const g = cv.getContext('2d');
+    SHIP_ART.forEach((row, y) => {
+      const full = row + row.split('').reverse().join('');
+      for (let x = 0; x < 16; x++) { const ch = full[x]; if (ch !== '.') { g.fillStyle = col[ch]; g.fillRect(x * SHIP_PX, y * SHIP_PX, SHIP_PX, SHIP_PX); } }
+    });
+    shipSprites[key] = cv;
+  });
   function drawHull(wing) {
-    // flame
-    const fl = 14 + Math.random() * 12, fg = ctx.createLinearGradient(0, 22, 0, 22 + fl);
-    fg.addColorStop(0, '#ffd36b'); fg.addColorStop(0.5, '#ff3da8'); fg.addColorStop(1, 'rgba(255,61,168,0)');
-    ctx.fillStyle = fg; ctx.beginPath(); ctx.moveTo(-6, 22); ctx.lineTo(0, 22 + fl); ctx.lineTo(6, 22); ctx.closePath(); ctx.fill();
-    // hull (wingmen are tinted purple so they read as "extra" planes)
-    const hg = ctx.createLinearGradient(0, -26, 0, 24); hg.addColorStop(0, '#ffffff'); hg.addColorStop(1, wing ? '#c084fc' : '#22d3ff');
-    ctx.shadowColor = wing ? '#a855f7' : '#22d3ff'; ctx.shadowBlur = wing ? 12 : 18; ctx.fillStyle = hg; ctx.strokeStyle = wing ? '#a855f7' : '#22d3ff'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(0, -26); ctx.lineTo(8, -8); ctx.lineTo(24, 14); ctx.lineTo(22, 22); ctx.lineTo(10, 16); ctx.lineTo(6, 24);
-    ctx.lineTo(-6, 24); ctx.lineTo(-10, 16); ctx.lineTo(-22, 22); ctx.lineTo(-24, 14); ctx.lineTo(-8, -8); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.shadowBlur = 0; ctx.strokeStyle = '#ff3da8'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(-22, 22); ctx.lineTo(-10, 16); ctx.moveTo(22, 22); ctx.lineTo(10, 16); ctx.stroke();
-    const cg = ctx.createLinearGradient(0, -12, 0, 6); cg.addColorStop(0, '#c084fc'); cg.addColorStop(1, '#ff3da8');
-    ctx.fillStyle = cg; ctx.beginPath(); ctx.ellipse(0, -4, 4, 9, 0, 0, 6.2832); ctx.fill();
+    // blocky flame under the engine (flickers), then the pixel plane, all centred on (0,0)
+    const rows = 2 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < rows; i++) {
+      ctx.fillStyle = i === 0 ? '#ffd36b' : i < 3 ? '#ff9a4d' : '#ff3da8';
+      ctx.fillRect(-SHIP_PX * 1.5, 24 + i * SHIP_PX, SHIP_PX * 3, SHIP_PX);
+    }
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(shipSprites[wing ? 'wing' : 'ship'], -24, -26);
   }
   function drawShip() {
-    const blink = invuln > 0 && Math.floor(t * 14) % 2 === 0, tilt = clamp(ship.vx / 430, -1, 1) * 0.18;
+    const blink = invuln > 0 && Math.floor(t * 14) % 2 === 0;
     // wingmen (blink during the last 2 seconds before they vanish)
     if (squad > 0 && !(squadT < 2 && Math.floor(t * 10) % 2 === 0)) {
       for (let k = 0; k < squad; k++) {
-        ctx.save(); ctx.translate(ship.x + WING_X[k], ship.y + WING_Y); ctx.rotate(tilt); ctx.scale(WING_SCALE, WING_SCALE); drawHull(true); ctx.restore();
+        ctx.save(); ctx.translate(ship.x + WING_X[k], ship.y + WING_Y); ctx.scale(WING_SCALE, WING_SCALE); drawHull(true); ctx.restore();
       }
     }
-    ctx.save(); ctx.translate(ship.x, ship.y); ctx.rotate(tilt);
+    ctx.save(); ctx.translate(ship.x, ship.y);
     if (!blink) drawHull(false);
     ctx.restore();
     if (shield > 0 && !(shield < 1.5 && Math.floor(t * 8) % 2 === 0)) {
@@ -461,8 +480,8 @@
     ctx.globalAlpha = 1;
     for (let i = 0; i < items.length; i++) drawItem(items[i]);
     for (let i = 0; i < meteors.length; i++) {
-      const m = meteors[i]; ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(m.rot); ctx.drawImage(m.spr, -m.spr.width / 2, -m.spr.height / 2); ctx.restore();
-      if (m.hit > 0) { ctx.globalAlpha = Math.min(0.7, m.hit * 8); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(m.x, m.y, m.r * 0.9, 0, 6.2832); ctx.fill(); ctx.globalAlpha = 1; }
+      const m = meteors[i]; ctx.save(); ctx.imageSmoothingEnabled = false; ctx.translate(m.x, m.y); ctx.rotate(m.rot); ctx.drawImage(m.spr, -m.spr.width / 2, -m.spr.height / 2); ctx.restore();
+      if (m.hit > 0) { ctx.globalAlpha = Math.min(0.7, m.hit * 8); ctx.fillStyle = '#fff'; const hs = m.spr.width * 0.7; ctx.fillRect(m.x - hs / 2, m.y - hs / 2, hs, hs); ctx.globalAlpha = 1; }
     }
     ctx.shadowColor = '#22d3ff'; ctx.shadowBlur = 10; ctx.fillStyle = '#c9fbff';
     for (let i = 0; i < B.length; i++) { const b = B[i]; if (b.a) { ctx.fillRect(b.x - 2, b.y - 9, 4, 18); } }
