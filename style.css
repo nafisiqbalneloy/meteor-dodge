@@ -116,7 +116,9 @@ canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: 
 .title { margin: 0; display: flex; flex-direction: column; gap: calc(6 * var(--u)); line-height: 1.1; font-weight: 400; font-size: calc(46 * var(--u)); }
 .title span:first-child { color: var(--white); text-shadow: calc(4 * var(--u)) calc(4 * var(--u)) 0 var(--cyan); }
 .title span:last-child { color: var(--pink); text-shadow: calc(4 * var(--u)) calc(4 * var(--u)) 0 var(--purple); }
-.hero-ship { width: calc(100 * var(--u)); height: calc(112 * var(--u)); filter: drop-shadow(0 0 calc(12 * var(--u)) var(--cyan)); animation: float 2.4s steps(6) infinite; }
+.hero-ship { width: calc(84 * var(--u)); height: calc(84 * var(--u)); image-rendering: pixelated; animation: float 2.4s steps(6) infinite; }
+.ship-desc { font-size: calc(9 * var(--u)); color: #b9c4ff; margin-top: calc(-6 * var(--u)); }
+.combo { margin-top: calc(10 * var(--u)); font-size: calc(11 * var(--u)); color: var(--gold); text-shadow: calc(2 * var(--u)) calc(2 * var(--u)) 0 #000; }
 .hero-ship .flame { animation: flick .2s steps(2) infinite alternate; transform-origin: 0 24px; }
 @keyframes float { 50% { transform: translateY(calc(-8 * var(--u))); } }
 @keyframes flick { to { transform: scaleY(.7); } }
@@ -174,3 +176,13 @@ canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: 
   .hero-ship, .btn.primary, .badge { animation: none; }
   .screen { transition-duration: .01s; }
 }
+
+/* ---------- Compact menu on the tall phone layout ---------- */
+#stage:not(.wide-layout) #menu { gap: calc(8 * var(--u)); padding: calc(10 * var(--u)); }
+#stage:not(.wide-layout) .menu-main { gap: calc(9 * var(--u)); }
+#stage:not(.wide-layout) .title { font-size: calc(40 * var(--u)); }
+#stage:not(.wide-layout) .hero-ship { width: calc(56 * var(--u)); height: calc(56 * var(--u)); }
+#stage:not(.wide-layout) .how { padding: calc(10 * var(--u)) calc(14 * var(--u)); }
+#stage:not(.wide-layout) .how h2 { margin-bottom: calc(6 * var(--u)); }
+#stage:not(.wide-layout) .how ul { line-height: 1.75; font-size: calc(9 * var(--u)); }
+#stage:not(.wide-layout) .btn.primary { min-height: 0; padding-top: calc(11 * var(--u)); padding-bottom: calc(11 * var(--u)); }

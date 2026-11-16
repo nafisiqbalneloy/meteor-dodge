@@ -23,6 +23,10 @@ Free. No sign-up. Works on PC and phone.
 - You have **3 lives**. A meteor hit costs one.
 - **Shoot** meteors to break them. Small ones take 1 hit, medium 2, large 3.
 - **Stars** give +50 points.
+- **Combo:** shoot meteors one after another to raise your score multiplier (up to x5). Getting hit resets it.
+- **Boss:** every minute or so a big angry meteor drops in. Shoot it down for 500 points, three stars and an extra life if you lost one.
+- **Ships:** pick STAR (balanced), DART (fast, small) or TANK (slow, shoots fast) on the menu.
+- Retro music plays while you fly. Turn it off with the MUSIC button.
 - The game gets faster every 15 seconds.
 - Pick **Easy**, **Normal** or **Hard** on the menu.
 - Your best score is saved in your browser.

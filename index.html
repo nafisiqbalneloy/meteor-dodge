@@ -19,7 +19,7 @@
 <meta name="twitter:description" content="Dodge meteors, collect stars, and survive as long as possible in this free online arcade game.">
 <meta name="twitter:image" content="https://nafisiqbalneloy.github.io/meteor-dodge/og-image.png">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <div id="app">
@@ -32,6 +32,7 @@
         <div class="score-label">SCORE</div>
         <div id="hudScore" class="score-val">0</div>
         <div class="best-line">BEST <span id="hudBest">0</span></div>
+        <div id="combo" class="combo hidden"></div>
         <div id="power" class="power hidden"><span>SHIELD</span><i><b id="powerBar"></b></i></div>
         <div id="power2" class="power alt hidden"><span id="power2Label">DOUBLE SHIP</span><i><b id="power2Bar"></b></i></div>
         <div id="power3" class="power orange hidden"><span>RAPID FIRE</span><i><b id="power3Bar"></b></i></div>
@@ -55,19 +56,16 @@
     <section id="menu" class="screen active">
       <div class="menu-main">
       <h1 class="title"><span>METEOR</span><span>DODGE</span></h1>
-      <svg class="hero-ship" viewBox="-40 -40 80 90" aria-hidden="true">
-        <defs>
-          <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#22d3ff"/></linearGradient>
-          <linearGradient id="hf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd36b"/><stop offset=".5" stop-color="#ff3da8"/><stop offset="1" stop-color="#ff3da800"/></linearGradient>
-          <linearGradient id="hc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c084fc"/><stop offset="1" stop-color="#ff3da8"/></linearGradient>
-        </defs>
-        <path class="flame" d="M-7 24 L0 52 L7 24 Z" fill="url(#hf)"/>
-        <path d="M0 -30 L9 -9 L27 16 L25 25 L11 18 L7 27 L-7 27 L-11 18 L-25 25 L-27 16 L-9 -9 Z" fill="url(#hg)" stroke="#22d3ff" stroke-width="1.5"/>
-        <path d="M-25 25 L-11 18 M25 25 L11 18" stroke="#ff3da8" stroke-width="2.5" stroke-linecap="round"/>
-        <ellipse cx="0" cy="-4" rx="4.5" ry="9" fill="url(#hc)"/>
-      </svg>
+      <canvas id="shipPreview" class="hero-ship" width="48" height="48" aria-hidden="true"></canvas>
 
       <div class="menu-best">BEST SCORE <b id="menuBest">0</b></div>
+
+      <div class="diff" role="radiogroup" aria-label="Ship">
+        <button class="diff-btn ship-btn" data-ship="star" role="radio">STAR</button>
+        <button class="diff-btn ship-btn" data-ship="dart" role="radio">DART</button>
+        <button class="diff-btn ship-btn" data-ship="tank" role="radio">TANK</button>
+      </div>
+      <div id="shipDesc" class="ship-desc">BALANCED ALL-ROUNDER</div>
 
       <div class="diff" role="radiogroup" aria-label="Difficulty">
         <button class="diff-btn" data-diff="easy" role="radio">EASY</button>
@@ -79,6 +77,7 @@
 
       <div class="row">
         <button id="btnSound" class="btn small" aria-pressed="true">SOUND: ON</button>
+        <button id="btnMusic" class="btn small" aria-pressed="true">MUSIC: ON</button>
         <button id="btnPadToggle" class="btn small touch-only" aria-pressed="true">TOUCH PAD: ON</button>
         <button id="btnShare" class="btn small">SHARE</button>
       </div>
@@ -95,6 +94,8 @@
           <li><b class="c-purple">SQUAD</b> + BOX = EXTRA PLANES</li>
           <li><b class="c-orange">RAPID</b> R DIAMOND = FAST FIRE</li>
           <li><b class="c-red">BOMB</b> B DIAMOND = CLEARS ALL</li>
+          <li><b class="c-gold">COMBO</b> QUICK KILLS = BIG x</li>
+          <li><b class="c-red">BOSS</b> SHOOT IT. WIN A LIFE</li>
           <li><b class="c-gold">PAUSE</b> ESC</li>
         </ul>
       </div>
@@ -124,6 +125,6 @@
   </div>
 </div>
 <noscript><p class="noscript">METEOR DODGE needs JavaScript enabled.</p></noscript>
-<script src="game.js?v=7"></script>
+<script src="game.js?v=8"></script>
 </body>
 </html>
