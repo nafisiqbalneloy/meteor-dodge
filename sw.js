@@ -1,6 +1,6 @@
 /* METEOR DODGE service worker: lets the game open offline. Always tries the network first so updates show up. */
-const CACHE = 'meteor-dodge-v1';
-const CORE = ['./', 'index.html', 'style.css', 'game.js', '404.html', 'manifest.json', 'og-image.png',
+const CACHE = 'meteor-dodge-v2';
+const CORE = ['./', 'index.html', 'style.css', 'game.js', '404.html', 'manifest.json', 'og-image-v2.png',
   'assets/favicon.svg', 'assets/icon-192.png', 'assets/icon-512.png', 'assets/PressStart2P-Regular.ttf'];
 
 self.addEventListener('install', (e) => {

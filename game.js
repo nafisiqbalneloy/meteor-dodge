@@ -36,7 +36,7 @@
   const COMBO_SECS = 2.2, BOSS_FIRST = 55, BOSS_EVERY = 70;
   let difficulty = store.get('difficulty', 'normal'); if (!DIFF[difficulty]) difficulty = 'normal';
   let soundOn = store.get('sound', '1') === '1';
-  let padOn = store.get('pad', '1') === '1';
+  let padOn = store.get('pad2', '0') === '1';
   let best = parseInt(store.get('best', '0'), 10) || 0;
 
   /* ---------------- Game state ---------------- */
@@ -895,7 +895,7 @@
   click('btnSound', () => { soundOn = !soundOn; store.set('sound', soundOn ? '1' : '0'); refreshMenu(); if (soundOn) sfx.star(); });
   click('btnMusic', () => { musicOn = !musicOn; store.set('music', musicOn ? '1' : '0'); refreshMenu(); if (!musicOn) music.stop(); });
   document.querySelectorAll('.ship-btn').forEach((b) => on(b, 'click', () => { shipId = b.dataset.ship; store.set('ship', shipId); refreshMenu(); }));
-  click('btnPadToggle', () => { padOn = !padOn; store.set('pad', padOn ? '1' : '0'); refreshMenu(); });
+  click('btnPadToggle', () => { padOn = !padOn; store.set('pad2', padOn ? '1' : '0'); refreshMenu(); });
   click('btnShare', () => share(false)); click('btnShare2', () => share(true));
   document.querySelectorAll('.diff-btn:not(.ship-btn)').forEach((b) => on(b, 'click', () => { difficulty = b.dataset.diff; store.set('difficulty', difficulty); refreshMenu(); }));
 

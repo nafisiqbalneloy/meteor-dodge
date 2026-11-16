@@ -1,21 +1,82 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><title>og source</title>
 <style>
-html,body{margin:0;width:1200px;height:630px;overflow:hidden;background:#05060f;font-family:"Segoe UI",Arial,sans-serif;color:#fff}
-body{background:radial-gradient(ellipse at 20% 20%,#2a1260 0,transparent 55%),radial-gradient(ellipse at 85% 85%,#0b3a66 0,transparent 55%),radial-gradient(ellipse at 60% 40%,#5a1245 0,transparent 45%),#05060f;position:relative}
-.t{position:absolute;left:80px;top:150px;font-size:130px;font-weight:900;font-style:italic;line-height:.95;letter-spacing:4px}
-.t span:first-child{display:block;text-shadow:0 0 30px #22d3ff,0 0 70px #22d3ff}
-.t span:last-child{display:block;color:#ff3da8;text-shadow:0 0 30px #ff3da8}
-.s{position:absolute;left:84px;top:430px;font-size:34px;color:#b9c4ff;letter-spacing:3px}
-svg{position:absolute;right:110px;top:90px;width:340px;height:380px;filter:drop-shadow(0 0 30px #22d3ff)}
-i{position:absolute;border-radius:50%;background:radial-gradient(circle at 35% 35%,#c9a78f,#4a403c);box-shadow:0 0 18px rgba(255,160,90,.5)}
-b{position:absolute;width:3px;height:3px;background:#fff;border-radius:50%}
+@font-face{font-family:"Press Start 2P";src:url("PressStart2P-Regular.ttf")}
+html,body{margin:0;width:1200px;height:630px;overflow:hidden;background:#05060f;font-family:"Press Start 2P",monospace}
+canvas{position:absolute;left:0;top:0}
+.t{position:absolute;left:70px;line-height:1;white-space:nowrap}
+.a{top:150px;font-size:92px;color:#fff;text-shadow:8px 8px 0 #22d3ff}
+.b{top:262px;font-size:92px;color:#ff3da8;text-shadow:8px 8px 0 #a855f7}
+.s{top:400px;font-size:22px;color:#ffd36b;letter-spacing:1px}
+.s2{top:446px;font-size:16px;color:#b9c4ff;letter-spacing:1px}
+.tag{position:absolute;left:70px;top:510px;font-size:20px;color:#05060f;background:#22d3ff;padding:14px 20px;box-shadow:6px 6px 0 #ff3da8}
+.f{position:absolute;left:14px;top:14px;width:1172px;height:602px;box-sizing:border-box;border:6px solid #22d3ff;box-shadow:8px 8px 0 #ff3da8;pointer-events:none}
 </style></head><body>
-<i style="left:640px;top:60px;width:70px;height:70px"></i><i style="left:1060px;top:420px;width:110px;height:110px"></i>
-<i style="left:560px;top:470px;width:44px;height:44px"></i><i style="left:980px;top:40px;width:50px;height:50px"></i>
-<b style="left:300px;top:60px"></b><b style="left:700px;top:300px"></b><b style="left:900px;top:560px"></b><b style="left:120px;top:540px"></b><b style="left:1120px;top:200px"></b><b style="left:520px;top:120px"></b>
-<div class="t"><span>METEOR</span><span>DODGE</span></div>
-<div class="s">FREE SPACE ARCADE GAME &nbsp;&bull;&nbsp; PLAY INSTANTLY</div>
-<svg viewBox="-40 -40 80 90"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#22d3ff"/></linearGradient><linearGradient id="f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd36b"/><stop offset=".5" stop-color="#ff3da8"/><stop offset="1" stop-color="#ff3da800"/></linearGradient></defs>
-<path d="M-7 24 L0 52 L7 24 Z" fill="url(#f)"/><path d="M0 -30 L9 -9 L27 16 L25 25 L11 18 L7 27 L-7 27 L-11 18 L-25 25 L-27 16 L-9 -9 Z" fill="url(#g)" stroke="#22d3ff" stroke-width="1.5"/><path d="M-25 25 L-11 18 M25 25 L11 18" stroke="#ff3da8" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="0" cy="-4" rx="4.5" ry="9" fill="#c084fc"/></svg>
-</body></html>
+<canvas id="c" width="1200" height="630"></canvas>
+<div class="f"></div>
+<div class="t a">METEOR</div><div class="t b">DODGE</div>
+<div class="t s">DODGE. SHOOT. BEAT THE BOSS.</div>
+<div class="t s2">3 SHIPS  /  POWER-UPS  /  FREE</div>
+<div class="tag">PLAY NOW IN YOUR BROWSER</div>
+<script>
+const c = document.getElementById('c'), g = c.getContext('2d');
+g.imageSmoothingEnabled = false;
+const bg = g.createLinearGradient(0, 0, 0, 630); bg.addColorStop(0, '#0a0b1e'); bg.addColorStop(1, '#1a0f3c');
+g.fillStyle = bg; g.fillRect(0, 0, 1200, 630);
+const nb = (x, y, r, col) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 1200, 630); };
+nb(900, 200, 380, 'rgba(255,61,168,.22)'); nb(200, 560, 340, 'rgba(34,211,255,.14)'); nb(1050, 560, 300, 'rgba(168,85,247,.25)');
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+for (let i = 0; i < 70; i++) { g.fillStyle = rnd() < 0.2 ? '#ffd36b' : '#fff'; const s = rnd() < 0.2 ? 6 : 3, x = Math.floor(rnd() * 1200), y = Math.floor(rnd() * 630); if (x < 760 && y > 130 && y < 560) continue; g.fillRect(x, y, s, s); }
+
+function makeRock(pal, r, PX, decorate) {
+  const n = Math.ceil(r * 2 / PX), c0 = (n - 1) / 2, R = n / 2;
+  const bump = []; for (let i = 0; i < 12; i++) bump.push(0.8 + rnd() * 0.2);
+  const inside = (x, y) => {
+    if (x < 0 || y < 0 || x >= n || y >= n) return false;
+    const dx = x - c0, dy = y - c0, ang = (Math.atan2(dy, dx) + 3.1416) / 6.2832 * 12, i0 = Math.floor(ang) % 12, f = ang - Math.floor(ang);
+    return Math.sqrt(dx * dx + dy * dy) <= R * (bump[i0] * (1 - f) + bump[(i0 + 1) % 12] * f);
+  };
+  const cv = document.createElement('canvas'); cv.width = cv.height = n * PX; const q = cv.getContext('2d');
+  const px = (x, y, col) => { q.fillStyle = col; q.fillRect(x * PX, y * PX, PX, PX); };
+  const crater = new Set();
+  for (let k = 0; k < 2 + Math.floor(n / 6); k++) { const cx = Math.floor(c0 - R * 0.5 + rnd() * R), cy = Math.floor(c0 - R * 0.5 + rnd() * R), w = n > 12 ? 2 : 1; for (let u = 0; u < w; u++) for (let v = 0; v < w; v++) crater.add((cx + u) + ',' + (cy + v)); }
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    if (!inside(x, y)) continue;
+    if (!inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1)) { px(x, y, pal.out); continue; }
+    const sh = ((x - c0) + (y - c0)) / (R * 2);
+    px(x, y, crater.has(x + ',' + y) ? pal.cr : sh < -0.22 ? pal.hi : sh < 0.18 ? pal.mid : pal.lo);
+  }
+  if (decorate) decorate(px, n);
+  return cv;
+}
+const ROCK = { hi: '#b5a79d', mid: '#8d7f78', lo: '#5a4f4a', out: '#1e1715', cr: '#3b322e' };
+const ICE = { hi: '#d6f2ff', mid: '#9fd8ff', lo: '#4f86b8', out: '#14304f', cr: '#3a6ea0' };
+const MAGMA = { hi: '#e0643a', mid: '#b0452b', lo: '#6a2318', out: '#2a0d08', cr: '#ffb04d' };
+const Y = '#ffd36b', K = '#2a0d08', RD = '#ff3d5a', WH = '#fff';
+const boss = makeRock(MAGMA, 108, 12, (px, n) => {
+  const m = Math.floor(n / 2);
+  [-6, -5, -4].forEach((o) => px(m + o, m - 5, K)); [3, 4, 5].forEach((o) => px(m + o, m - 5, K));
+  [-5, -4].forEach((o) => { px(m + o, m - 3, Y); px(m + o, m - 2, Y); }); [3, 4].forEach((o) => { px(m + o, m - 3, Y); px(m + o, m - 2, Y); });
+  px(m - 4, m - 2, RD); px(m + 3, m - 2, RD);
+  for (let o = -4; o <= 3; o++) { px(m + o, m + 2, o % 2 ? K : WH); px(m + o, m + 3, K); }
+});
+g.drawImage(boss, 800, 36);
+g.drawImage(makeRock(ICE, 40, 6), 640, 300); g.drawImage(makeRock(ROCK, 32, 6), 1090, 300); g.drawImage(makeRock(MAGMA, 26, 6), 700, 80);
+g.drawImage(makeRock(ROCK, 22, 4), 760, 470); g.drawImage(makeRock(ICE, 22, 4), 1110, 150);
+
+// UFOs
+const UFO = ['....oo', '...owW', '..owWW', 'ooorrr', 'orrrrr', 'oyrryr', '.oddrd', '..oooo'], UC = { o: '#3a0f2a', w: '#9fe8ff', W: '#e6fbff', r: '#ff5a7a', d: '#b01e48', y: '#ffd36b' };
+function ufo(x, y, P) { UFO.forEach((row, yy) => { const f = row + row.split('').reverse().join(''); for (let xx = 0; xx < 12; xx++) { const ch = f[xx]; if (ch !== '.') { g.fillStyle = UC[ch]; g.fillRect(x + xx * P, y + yy * P, P, P); } } }); }
+ufo(1030, 232, 7); ufo(620, 200, 6);
+
+// player ship
+const ART = ['.......o','......ow','......ow','.....owc','.....owv','....owvv','....owcv','...owccc','o..owccc','oo.owccd','owoowccd','owcccccd','opcccccd','oppoocdd','.oo..odd','.....ood'];
+const COL = { o: '#0b3a66', w: '#ffffff', c: '#22d3ff', d: '#1688b8', p: '#ff3da8', v: '#c084fc' };
+const SP = 11, sx = 810, sy = 400;
+g.fillStyle = '#ffd36b'; g.fillRect(sx + 7 * SP, sy + 16 * SP, 2 * SP, SP); g.fillStyle = '#ff9a4d'; g.fillRect(sx + 7 * SP, sy + 17 * SP, 2 * SP, SP); g.fillStyle = '#ff3da8'; g.fillRect(sx + 7.5 * SP, sy + 18 * SP, SP, SP);
+ART.forEach((row, y) => { const f = row + row.split('').reverse().join(''); for (let x = 0; x < 16; x++) { const ch = f[x]; if (ch !== '.') { g.fillStyle = COL[ch]; g.fillRect(sx + x * SP, sy + y * SP, SP, SP); } } });
+// bullets and a pink enemy shot
+g.shadowColor = '#22d3ff'; g.shadowBlur = 14; g.fillStyle = '#c9fbff';
+[[884, 340], [884, 290], [884, 240]].forEach(([x, y]) => g.fillRect(x - 4, y, 8, 32));
+g.shadowColor = '#ff3da8'; g.fillStyle = '#ff7ab0'; g.fillRect(1058, 330, 12, 12); g.fillStyle = '#fff'; g.fillRect(1062, 334, 4, 4); g.shadowBlur = 0;
+</script></body></html>

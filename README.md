@@ -73,7 +73,7 @@ sw.js        offline support
 style.css    the pixel look
 game.js      the game
 404.html     not-found page
-og-image.png link preview picture
+og-image-v2.png link preview picture
 assets/      icon, font and banner
 ```
 
