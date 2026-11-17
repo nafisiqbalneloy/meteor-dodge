@@ -907,7 +907,13 @@
     // Measure the full-screen #app box (not window.innerHeight): inside an installed iPhone app, innerHeight can be wrong
     // for a moment after launch, which made the game look cropped or zoomed out.
     const box = $('app').getBoundingClientRect();
-    const vw = Math.max(1, Math.round(box.width || window.innerWidth)), vh = Math.max(1, Math.round(box.height || window.innerHeight));
+    let vw = Math.max(1, Math.round(box.width || window.innerWidth)), vh = Math.max(1, Math.round(box.height || window.innerHeight));
+    // iPhone home-screen app: the page can report a height a little shorter than the real screen (the strip by the home bar),
+    // so never use less than the physical screen size there.
+    if (window.navigator.standalone === true && window.screen) {
+      const sa = window.screen.width, sb = window.screen.height, sw = Math.min(sa, sb), sh = Math.max(sa, sb);
+      if (vw < vh) { vw = Math.max(vw, sw); vh = Math.max(vh, sh); } else { vw = Math.max(vw, sh); vh = Math.max(vh, sw); }
+    }
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     // Wide screens get a wider field (720 tall). Tall, narrow screens (phones) get a 480-wide field that is taller,
     // so objects keep a comfortable size instead of being blown up.
@@ -1036,6 +1042,8 @@
   const resizeSoon = () => { [0, 120, 400, 1000].forEach((ms) => setTimeout(resize, ms)); };
   on(window, 'pageshow', resizeSoon); on(window, 'load', resizeSoon); on(window, 'orientationchange', resizeSoon);
   on(document, 'visibilitychange', () => { if (!document.hidden) resizeSoon(); });
+  const resizeTimer = setInterval(() => { if (!document.hidden) resize(); }, 1500);   // cheap safety net: catches sizes that arrive late
+  cleanups.push(() => clearInterval(resizeTimer));
   if (window.ResizeObserver) { try { const ro = new ResizeObserver(() => resize()); ro.observe($('app')); cleanups.push(() => ro.disconnect()); } catch (e) { /* ignore */ } }
   if (window.visualViewport) on(window.visualViewport, 'resize', resize); on(window, 'orientationchange', resize);
   on(window, 'pagehide', destroy);
