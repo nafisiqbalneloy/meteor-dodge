@@ -176,15 +176,16 @@ canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: 
   .screen { transition-duration: .01s; }
 }
 
-/* ---------- Compact menu on the tall phone layout ---------- */
-#stage:not(.wide-layout) #menu { gap: calc(8 * var(--u)); padding: calc(10 * var(--u)); }
-#stage:not(.wide-layout) .menu-main { gap: calc(9 * var(--u)); }
-#stage:not(.wide-layout) .title { font-size: calc(40 * var(--u)); }
-#stage:not(.wide-layout) .hero-ship { width: calc(56 * var(--u)); height: calc(56 * var(--u)); }
-#stage:not(.wide-layout) .how { padding: calc(10 * var(--u)) calc(14 * var(--u)); }
-#stage:not(.wide-layout) .how h2 { margin-bottom: calc(6 * var(--u)); }
-#stage:not(.wide-layout) .how ul { line-height: 1.75; font-size: calc(9 * var(--u)); }
-#stage:not(.wide-layout) .btn.primary { min-height: 0; padding-top: calc(11 * var(--u)); padding-bottom: calc(11 * var(--u)); }
+/* ---------- Phone layout: the how-to list lives on its own page, so the main menu stays roomy ---------- */
+.narrow-only, .how-back { display: none; }
+#stage:not(.wide-layout) .narrow-only { display: inline-block; }
+#stage:not(.wide-layout) #menu .how { display: none; width: calc(440 * var(--u)); max-width: 96%; padding: calc(16 * var(--u)) calc(18 * var(--u)); }
+#stage:not(.wide-layout) #menu .how h2 { font-size: calc(14 * var(--u)); margin-bottom: calc(12 * var(--u)); }
+#stage:not(.wide-layout) #menu .how ul { font-size: calc(11 * var(--u)); line-height: 2.05; }
+#stage:not(.wide-layout) #menu .how .how-back { display: block; margin: calc(14 * var(--u)) auto 0; }
+#stage:not(.wide-layout) #menu.show-how .menu-main { display: none; }
+#stage:not(.wide-layout) #menu.show-how .how { display: block; }
+#stage:not(.wide-layout) .menu-main { gap: calc(12 * var(--u)); }
 
 .diff-btn.locked { opacity: .4; }
 .diff-btn.locked::after { content: ' ?'; }

@@ -306,6 +306,7 @@
   /* ---------------- UI state ---------------- */
   function setState(s) {
     state = s; if (s === 'playing') music.start(); else music.stop();
+    if (s !== 'menu') screens.menu.classList.remove('show-how');
     stage.classList.remove('state-menu', 'state-playing', 'state-paused', 'state-dying', 'state-over');
     stage.classList.add('state-' + (s === 'dying' ? 'playing' : s));
     screens.menu.classList.toggle('active', s === 'menu');
@@ -993,6 +994,7 @@
   click('btnPause', pauseGame); click('btnResume', resumeGame);
   click('btnPauseMenu', toMenu); click('btnOverMenu', toMenu);
   click('btnSound', () => { soundOn = !soundOn; store.set('sound', soundOn ? '1' : '0'); refreshMenu(); if (soundOn) sfx.star(); });
+  click('btnHow', () => screens.menu.classList.add('show-how')); click('btnHowBack', () => screens.menu.classList.remove('show-how'));
   click('btnMusic', () => { musicOn = !musicOn; store.set('music', musicOn ? '1' : '0'); refreshMenu(); if (!musicOn) music.stop(); });
   document.querySelectorAll('.ship-btn').forEach((b) => on(b, 'click', () => {
     const id = b.dataset.ship;
