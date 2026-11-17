@@ -172,15 +172,36 @@
   }
 
   /* ---------------- Background: nebula + parallax starfield ---------------- */
-  const nebula = document.createElement('canvas');
-  function buildNebula() {
-    nebula.width = W; nebula.height = H;
-    const g = nebula.getContext('2d'), k = W / BASE_W;
-    g.fillStyle = '#05060f'; g.fillRect(0, 0, W, H);
-    [[100 * k, 140, 280, 'rgba(120,40,200,.32)'], [400 * k, 360, 300, 'rgba(255,61,168,.16)'], [160 * k, 600, 320, 'rgba(34,211,255,.16)'], [420 * k, 40, 200, 'rgba(34,211,255,.1)'], [W * 0.62, 220, 260, 'rgba(120,40,200,.18)']]
-      .forEach(([x, y, r, c]) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, c); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); });
+  // Level themes: every 3 levels (about 45 seconds) the sky and the meteor mix change
+  const THEMES = [
+    { name: 'DEEP SPACE',     bg: '#05060f', star: '#cfefff', pal: [1, 1, 1],
+      glow: ['rgba(120,40,200,.32)', 'rgba(255,61,168,.16)', 'rgba(34,211,255,.16)', 'rgba(34,211,255,.1)', 'rgba(120,40,200,.18)'] },
+    { name: 'ICE FIELD',      bg: '#040a14', star: '#e6fbff', pal: [2, 7, 1],
+      glow: ['rgba(34,211,255,.30)', 'rgba(120,180,255,.22)', 'rgba(90,120,255,.22)', 'rgba(200,245,255,.12)', 'rgba(34,211,255,.18)'] },
+    { name: 'LAVA ZONE',      bg: '#0d0508', star: '#ffd9b0', pal: [2, 1, 7],
+      glow: ['rgba(255,90,40,.28)', 'rgba(255,61,90,.22)', 'rgba(255,154,77,.18)', 'rgba(120,20,10,.30)', 'rgba(255,61,168,.12)'] },
+    { name: 'TOXIC NEBULA',   bg: '#04100a', star: '#d8ffe0', pal: [5, 3, 2],
+      glow: ['rgba(74,222,128,.26)', 'rgba(168,85,247,.24)', 'rgba(34,211,255,.12)', 'rgba(190,255,90,.14)', 'rgba(74,222,128,.16)'] }
+  ];
+  const THEME_LEVELS = 3;
+  let themeIdx = 0, nextTheme = 0, themeFade = 1;
+  const nebula = document.createElement('canvas'), nebulaNext = document.createElement('canvas');
+  function paintNebula(cv, th) {
+    cv.width = W; cv.height = H;
+    const g = cv.getContext('2d'), k = W / BASE_W, ky = H / BASE_H, gl = th.glow;
+    g.fillStyle = th.bg; g.fillRect(0, 0, W, H);
+    [[100 * k, 140 * ky, 280, gl[0]], [400 * k, 360 * ky, 300, gl[1]], [160 * k, 600 * ky, 320, gl[2]], [420 * k, 40 * ky, 200, gl[3]], [W * 0.62, 220 * ky, 260, gl[4]]]
+      .forEach(([x, y, r, col]) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); });
   }
+  function buildNebula() { paintNebula(nebula, THEMES[themeIdx]); if (themeFade < 1) paintNebula(nebulaNext, THEMES[nextTheme]); }
   buildNebula();
+  function startTheme(ti) { nextTheme = ti; paintNebula(nebulaNext, THEMES[ti]); themeFade = 0; }
+  function resetTheme() { if (themeIdx !== 0 || themeFade < 1) { themeIdx = 0; nextTheme = 0; themeFade = 1; paintNebula(nebula, THEMES[0]); } }
+  function pickPal() {
+    const w = THEMES[themeIdx].pal, tot = w[0] + w[1] + w[2]; let r = Math.random() * tot;
+    for (let i = 0; i < 3; i++) { r -= w[i]; if (r < 0) return i; }
+    return 2;
+  }
   const starsBG = [];
   for (let i = 0; i < 560; i++) {                // enough for the widest field; only starCount are used
     const layer = i % 3;
@@ -317,7 +338,7 @@
     meteors.length = 0; items.length = 0; P.forEach((p) => { p.a = false; }); B.forEach((b) => { b.a = false; });
     fireT = 0.15; keys.fire = false; padFire = false; fireQueued = false; squad = 0; squadT = 0; wingSpawnT = 14; rapid = 0; rapidSpawnT = 22; bombSpawnT = 30;
     enemies.length = 0; EB.forEach((e) => { e.a = false; }); enemyT = 24; combo = 0; comboT = 0; bestCombo = 0; boss = null; bossT = BOSS_FIRST; bossKills = 0; POPS.forEach((p) => { p.a = false; });
-    ship.r = SHIPS[shipId].r;
+    ship.r = SHIPS[shipId].r; resetTheme();
     $('newBest').classList.add('hidden');
     renderLives(); renderHud(); hudBest.textContent = fmt(best);
     setState('playing'); sfx.start();
@@ -348,11 +369,11 @@
     const d = DIFF[difficulty], si = Math.random() < 0.42 ? 0 : Math.random() < 0.6 ? 1 : 2, sz = SIZES[si];
     const ramp = 1 + Math.min(t / 70, 1.4);
     const m = { x: rand(sz.r, W - sz.r), y: -sz.r - 12, vy: rand(150, 270) * d.speed * ramp * sz.speed, vx: t > 20 ? rand(-45, 45) : 0,
-      r: sz.r, spr: sprites[Math.floor(Math.random() * 3)][si], rot: Math.floor(Math.random() * 4) * 1.5708, vr: 0, si, hp: si + 1, hit: 0 };
+      r: sz.r, spr: sprites[pickPal()][si], rot: Math.floor(Math.random() * 4) * 1.5708, vr: 0, si, hp: si + 1, hit: 0 };
     m.rt = rand(0.4, 1.1); meteors.push(m);
   }
   function spawnMeteorAt(x, y, si, vx, vy) {
-    meteors.push({ x, y, vy, vx, r: SIZES[si].r, spr: sprites[Math.floor(Math.random() * 3)][si], rot: Math.floor(Math.random() * 4) * 1.5708, vr: 0, si, hp: si + 1, hit: 0, rt: rand(0.4, 1.1) });
+    meteors.push({ x, y, vy, vx, r: SIZES[si].r, spr: sprites[pickPal()][si], rot: Math.floor(Math.random() * 4) * 1.5708, vr: 0, si, hp: si + 1, hit: 0, rt: rand(0.4, 1.1) });
   }
   function spawnEnemy() {
     const d = DIFF[difficulty], dir = Math.random() < 0.5 ? 1 : -1;
@@ -476,6 +497,10 @@
     for (let i = 0; i < P.length; i++) { const p = P[i]; if (!p.a) continue; p.l -= dt; if (p.l <= 0) { p.a = false; continue; } p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.985; p.vy *= 0.985; }
     if (shakeT > 0) shakeT -= dt;
     if (flash > 0) flash -= dt;
+    if (themeFade < 1) {
+      themeFade += dt / 2.5;
+      if (themeFade >= 1) { themeFade = 1; themeIdx = nextTheme; const g = nebula.getContext('2d'); g.globalAlpha = 1; g.drawImage(nebulaNext, 0, 0); }
+    }
 
     if (state === 'dying') {
       stepWorld(dt, false); dyingT -= dt; if (dyingT <= 0) endGame(); return;
@@ -486,7 +511,12 @@
     const d = DIFF[difficulty];
     // level-up feedback
     const lv = Math.floor(t / LEVEL_SECS);
-    if (lv > level) { level = lv; toast('SPEED UP!  LEVEL ' + (level + 1), 1300); }
+    if (lv > level) {
+      level = lv;
+      const ti = Math.floor(level / THEME_LEVELS) % THEMES.length;
+      if (ti !== nextTheme) { startTheme(ti); toast('LEVEL ' + (level + 1) + ': ' + THEMES[ti].name, 2000); }
+      else toast('SPEED UP!  LEVEL ' + (level + 1), 1300);
+    }
 
     // score: survival points
     scoreFrac += dt * 10 * (1 + level * 0.15);
@@ -732,8 +762,10 @@
     ctx.save();
     if (shakeT > 0) ctx.translate(rand(-1, 1) * shakeMag * Math.min(1, shakeT * 4), rand(-1, 1) * shakeMag * Math.min(1, shakeT * 4));
     ctx.drawImage(nebula, -20, -20, W + 40, H + 40);
+    if (themeFade < 1) { ctx.globalAlpha = themeFade; ctx.drawImage(nebulaNext, -20, -20, W + 40, H + 40); ctx.globalAlpha = 1; }
+    const starTint = THEMES[themeFade < 0.5 ? themeIdx : nextTheme].star;
     for (let i = 0; i < starCount; i++) {
-      const s = starsBG[i]; ctx.globalAlpha = 0.45 + 0.4 * Math.sin(s.ph); ctx.fillStyle = s.s > 1.8 ? '#cfefff' : '#fff'; ctx.fillRect(s.x, s.y, s.s, s.s);
+      const s = starsBG[i]; ctx.globalAlpha = 0.45 + 0.4 * Math.sin(s.ph); ctx.fillStyle = s.s > 1.8 ? starTint : '#fff'; ctx.fillRect(s.x, s.y, s.s, s.s);
     }
     ctx.globalAlpha = 1;
     for (let i = 0; i < items.length; i++) drawItem(items[i]);
@@ -945,7 +977,7 @@
 
   // small hook used by the automated tests (read-only helpers; no effect on normal play)
   window.MeteorDodge = {
-    get: () => ({ W, state, score, lives, stars, shield, squad, squadT, rapid, combo, bestCombo, shipId, boss: boss ? { hp: boss.hp, max: boss.max, x: boss.x, y: boss.y } : null, bossKills, enemies: enemies.length, ebullets: EB.filter((e) => e.a).length, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
+    get: () => ({ W, state, score, lives, stars, shield, squad, squadT, rapid, theme: themeIdx, themeFade, combo, bestCombo, shipId, boss: boss ? { hp: boss.hp, max: boss.max, x: boss.x, y: boss.y } : null, bossKills, enemies: enemies.length, ebullets: EB.filter((e) => e.a).length, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
     step: update, startGame, pauseGame, resumeGame, ship, meteors, items, keys, bullets: B,
     spawnMeteor, spawnItem, spawnBoss, spawnEnemy, enemyList: enemies, eb: EB, destroy, music, setShip: (id) => { shipId = id; ship.r = SHIPS[id].r; }
   };

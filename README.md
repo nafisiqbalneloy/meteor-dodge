@@ -30,6 +30,7 @@ Free. No sign-up. Works on PC and phone.
 - **Ships:** pick STAR (balanced), DART (fast, small) or TANK (slow, shoots fast) on the menu.
 - Retro music plays while you fly. Turn it off with the MUSIC button.
 - The game gets faster every 15 seconds.
+- **Level themes:** every 3 levels the sky changes: Deep Space, Ice Field, Lava Zone, Toxic Nebula. The meteor mix changes with it (more ice meteors in the Ice Field, more magma in the Lava Zone).
 - Pick **Easy**, **Normal** or **Hard** on the menu.
 - Your best score is saved in your browser.
 
