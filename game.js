@@ -71,7 +71,7 @@
   for (let i = 0; i < 30; i++) EB.push({ a: false, x: 0, y: 0, vx: 0, vy: 0 });
   let ebCursor = 0, enemyT = 24;
   let gpDir = 0, gpFire = false; const gpPrev = { a: false, st: false };
-  const holes = []; let holeT = 42;                  // black hole hazard
+  const holes = []; let holeT = 22;                  // black hole hazard
   const POPS = [];                                   // floating "+30" texts (fixed pool)
   for (let i = 0; i < 24; i++) POPS.push({ a: false, x: 0, y: 0, l: 0, txt: '', c: '#fff' });
   let popCursor = 0;
@@ -180,18 +180,18 @@
   }
 
   /* ---------------- Background: nebula + parallax starfield ---------------- */
-  // Level themes: every 3 levels (about 45 seconds) the sky and the meteor mix change
+  // Level themes: every 2 levels (about 30 seconds) the sky and the meteor mix change. Each one has a clearly different colour.
   const THEMES = [
     { name: 'DEEP SPACE',     bg: '#05060f', star: '#cfefff', pal: [1, 1, 1],
       glow: ['rgba(120,40,200,.32)', 'rgba(255,61,168,.16)', 'rgba(34,211,255,.16)', 'rgba(34,211,255,.1)', 'rgba(120,40,200,.18)'] },
-    { name: 'ICE FIELD',      bg: '#040a14', star: '#e6fbff', pal: [2, 7, 1],
-      glow: ['rgba(34,211,255,.30)', 'rgba(120,180,255,.22)', 'rgba(90,120,255,.22)', 'rgba(200,245,255,.12)', 'rgba(34,211,255,.18)'] },
-    { name: 'LAVA ZONE',      bg: '#0d0508', star: '#ffd9b0', pal: [2, 1, 7],
-      glow: ['rgba(255,90,40,.28)', 'rgba(255,61,90,.22)', 'rgba(255,154,77,.18)', 'rgba(120,20,10,.30)', 'rgba(255,61,168,.12)'] },
-    { name: 'TOXIC NEBULA',   bg: '#04100a', star: '#d8ffe0', pal: [5, 3, 2],
-      glow: ['rgba(74,222,128,.26)', 'rgba(168,85,247,.24)', 'rgba(34,211,255,.12)', 'rgba(190,255,90,.14)', 'rgba(74,222,128,.16)'] }
+    { name: 'TOXIC NEBULA',   bg: '#031a0c', star: '#d8ffe0', pal: [5, 3, 2],
+      glow: ['rgba(74,222,128,.50)', 'rgba(190,255,90,.30)', 'rgba(20,140,70,.45)', 'rgba(190,255,90,.28)', 'rgba(74,222,128,.34)'] },
+    { name: 'ICE FIELD',      bg: '#0c2f4f', star: '#ffffff', pal: [2, 7, 1],
+      glow: ['rgba(160,235,255,.52)', 'rgba(255,255,255,.30)', 'rgba(90,170,255,.50)', 'rgba(210,245,255,.34)', 'rgba(120,210,255,.40)'] },
+    { name: 'LAVA ZONE',      bg: '#1a0605', star: '#ffd9b0', pal: [2, 1, 7],
+      glow: ['rgba(255,90,40,.45)', 'rgba(255,61,90,.36)', 'rgba(255,154,77,.34)', 'rgba(150,20,10,.50)', 'rgba(255,200,60,.22)'] }
   ];
-  const THEME_LEVELS = 3;
+  const THEME_LEVELS = 2;
   let themeIdx = 0, nextTheme = 0, themeFade = 1;
   const nebula = document.createElement('canvas'), nebulaNext = document.createElement('canvas');
   function paintNebula(cv, th) {
@@ -352,7 +352,7 @@
     fireT = 0.15; keys.fire = false; padFire = false; fireQueued = false; squad = 0; squadT = 0; wingSpawnT = 14; rapid = 0; rapidSpawnT = 22; bombSpawnT = 30;
     enemies.length = 0; EB.forEach((e) => { e.a = false; }); enemyT = 24; combo = 0; comboT = 0; bestCombo = 0; boss = null; bossT = BOSS_FIRST; bossKills = 0; POPS.forEach((p) => { p.a = false; });
     if (!unlocked.has(shipId)) shipId = 'star';
-    ship.r = SHIPS[shipId].r; resetTheme(); holes.length = 0; holeT = 42;
+    ship.r = SHIPS[shipId].r; resetTheme(); holes.length = 0; holeT = 22;
     $('newBest').classList.add('hidden');
     renderLives(); renderHud(); hudBest.textContent = fmt(best);
     setState('playing'); sfx.start();
@@ -490,7 +490,7 @@
   const BOSS_NAMES = ['MAGMA KING', 'ICE EYE', 'LASER SKULL'];
   function spawnBoss() {
     const d = DIFF[difficulty], hp = Math.round((34 + level * 4) * d.boss), type = bossKills % 3;
-    boss = { x: W / 2, y: -BOSS_R - 20, ty: 150, ph: 0, hp, max: hp, hit: 0, fireT: 1.6, r: BOSS_R, type, beam: null, beamT: 2.6, volley: 0 };
+    boss = { x: W / 2, y: -BOSS_R - 20, ty: 150, ph: 0, hp, max: hp, hit: 0, fireT: 1.6, r: BOSS_R, type, beam: null, beamT: 2.6, volley: 0, dir: Math.random() < 0.5 ? 1 : -1 };
     toast('WARNING! ' + BOSS_NAMES[type], 1900); sfx.warn(); shake(6, 0.4); buzz([60, 40, 60]);
   }
   function ebFire(x, y, ang, sp) {
@@ -502,8 +502,10 @@
     const d = DIFF[difficulty], frac = boss.hp / boss.max;
     boss.ph += dt; if (boss.hit > 0) boss.hit -= dt;
     if (boss.y < boss.ty) boss.y = Math.min(boss.ty, boss.y + 110 * dt);
-    const amp = Math.max(0, (W - 2 * boss.r - 30) / 2);
-    boss.x = W / 2 + Math.sin(boss.ph * (0.6 + (1 - frac) * 0.5)) * amp;
+    // steady side-to-side patrol (speed no longer grows with screen width)
+    const lo = boss.r + 15, hi = Math.max(lo, W - boss.r - 15), sp = (78 + (1 - frac) * 38) * (0.75 + d.speed * 0.25) * (1 + (W / BASE_W - 1) * 0.25);
+    boss.x += boss.dir * sp * dt;
+    if (boss.x > hi) { boss.x = hi; boss.dir = -1; } else if (boss.x < lo) { boss.x = lo; boss.dir = 1; }
     if (boss.y < boss.ty - 2) return;
     boss.fireT -= dt * (1 + (1 - frac) * 0.9);
     if (boss.type === 0 && boss.fireT <= 0) {                       // MAGMA: throws meteors
@@ -619,7 +621,7 @@
     if (comboT > 0) { comboT -= dt; if (comboT <= 0) combo = 0; }
     if (!boss) { bossT -= dt; if (bossT <= 0) spawnBoss(); } else stepBoss(dt);
     if (state === 'dying') return;
-    holeT -= dt; if (holeT <= 0) { if (!boss && level >= 3 && holes.length === 0) spawnHole(); holeT = rand(26, 40); }
+    holeT -= dt; if (holeT <= 0) { if (!boss && level >= 1 && holes.length === 0) spawnHole(); holeT = rand(18, 30); }
     // enemy UFOs: from about 20 seconds in, never during a boss, at most two at a time
     enemyT -= dt; if (enemyT <= 0) { if (!boss && t > 20 && enemies.length < 2) spawnEnemy(); enemyT = rand(9, 15) * Math.max(0.6, 1 - level * 0.05) * (difficulty === 'hard' ? 0.8 : difficulty === 'easy' ? 1.3 : 1); }
 
@@ -1047,6 +1049,6 @@
   window.MeteorDodge = {
     get: () => ({ W, state, score, lives, stars, shield, squad, squadT, rapid, theme: themeIdx, themeFade, holes: holes.length, unlocked: [...unlocked].join(','), combo, bestCombo, shipId, boss: boss ? { hp: boss.hp, max: boss.max, x: boss.x, y: boss.y } : null, bossKills, enemies: enemies.length, ebullets: EB.filter((e) => e.a).length, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
     step: update, startGame, pauseGame, resumeGame, ship, meteors, items, keys, bullets: B,
-    spawnMeteor, spawnItem, spawnBoss, spawnEnemy, spawnHole, holeList: holes, unlock, enemyList: enemies, eb: EB, destroy, music, setShip: (id) => { shipId = id; ship.r = SHIPS[id].r; }
+    spawnMeteor, spawnItem, spawnBoss, spawnEnemy, spawnHole, setTheme: (i) => { themeIdx = nextTheme = i; themeFade = 1; paintNebula(nebula, THEMES[i]); }, holeList: holes, unlock, enemyList: enemies, eb: EB, destroy, music, setShip: (id) => { shipId = id; ship.r = SHIPS[id].r; }
   };
 })();

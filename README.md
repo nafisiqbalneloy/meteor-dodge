@@ -37,7 +37,7 @@ Free. No sign-up. Works on PC and phone. Fills the whole screen.
 |---|---|
 | **UFOs** | Small red saucers fly across and shoot at you. Shoot them for points and a chance at a power-up. |
 | **Bosses** | A big boss drops in about every minute. **Magma King** throws meteors. **Ice Eye** fires fans of bullets. **Laser Skull** fires beams, so watch for the red warning line. Beat one for 500 points, three stars and an extra life if you lost one. |
-| **Black holes** | From level 4 a black hole sometimes drifts down. It pulls your ship, bends meteors and swallows stars and power-ups. Stay away from the dark centre. |
+| **Black holes** | After about 20 seconds a black hole sometimes drifts down. It pulls your ship, bends meteors and swallows stars and power-ups. Stay away from the dark centre. |
 
 ## POWER-UPS
 
@@ -61,7 +61,7 @@ You start with STAR. Earn the others, then pick one on the menu.
 
 ## LEVEL THEMES
 
-Every 3 levels the sky changes: Deep Space, Ice Field, Lava Zone, Toxic Nebula. The mix of meteors changes too.
+About every 30 seconds (2 levels) the sky changes: Deep Space (purple), Toxic Nebula (green), Ice Field (icy blue), Lava Zone (red). Then it starts over. The mix of meteors changes too.
 
 ## EXTRAS
 
