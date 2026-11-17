@@ -189,3 +189,7 @@ canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: 
 
 .diff-btn.locked { opacity: .4; }
 .diff-btn.locked::after { content: ' ?'; }
+
+/* iPhone home-screen app: page box as tall as the real screen (the height is set from JS) */
+html.ios-standalone, html.ios-standalone body { height: var(--screen-h); }
+html.ios-standalone #app { position: absolute; top: 0; left: 0; right: 0; bottom: auto; height: var(--screen-h); }

@@ -906,14 +906,15 @@
     // (phone or PC, portrait or landscape) with no black bars.
     // Measure the full-screen #app box (not window.innerHeight): inside an installed iPhone app, innerHeight can be wrong
     // for a moment after launch, which made the game look cropped or zoomed out.
+    // iPhone home-screen app: the page box can end ~47px above the bottom of the screen. Make the page box exactly
+    // as tall as the physical screen (portrait or landscape), then measure it like normal.
+    if (window.navigator.standalone === true && window.screen) {
+      const portrait = window.innerHeight >= window.innerWidth, sa = window.screen.width, sb = window.screen.height;
+      const rootEl = document.documentElement; rootEl.classList.add('ios-standalone');
+      rootEl.style.setProperty('--screen-h', (portrait ? Math.max(sa, sb) : Math.min(sa, sb)) + 'px');
+    }
     const box = $('app').getBoundingClientRect();
     let vw = Math.max(1, Math.round(box.width || window.innerWidth)), vh = Math.max(1, Math.round(box.height || window.innerHeight));
-    // iPhone home-screen app: the page can report a height a little shorter than the real screen (the strip by the home bar),
-    // so never use less than the physical screen size there.
-    if (window.navigator.standalone === true && window.screen) {
-      const sa = window.screen.width, sb = window.screen.height, sw = Math.min(sa, sb), sh = Math.max(sa, sb);
-      if (vw < vh) { vw = Math.max(vw, sw); vh = Math.max(vh, sh); } else { vw = Math.max(vw, sh); vh = Math.max(vh, sw); }
-    }
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     // Wide screens get a wider field (720 tall). Tall, narrow screens (phones) get a 480-wide field that is taller,
     // so objects keep a comfortable size instead of being blown up.
@@ -1010,6 +1011,22 @@
   click('btnPadToggle', () => { padOn = !padOn; store.set('pad2', padOn ? '1' : '0'); refreshMenu(); });
   click('btnShare', () => share(false)); click('btnShare2', () => share(true));
   document.querySelectorAll('.diff-btn:not(.ship-btn)').forEach((b) => on(b, 'click', () => { difficulty = b.dataset.diff; store.set('difficulty', difficulty); refreshMenu(); }));
+
+  /* ---------------- Hidden info panel (tap the title 5 times) ---------------- */
+  { let taps = 0, tapT = 0;
+    on(document.querySelector('#menu .title'), 'click', () => {
+      const now = Date.now(); taps = now - tapT < 1500 ? taps + 1 : 1; tapT = now;
+      if (taps < 5) return; taps = 0;
+      let box = $('infoPanel');
+      if (!box) { box = document.createElement('pre'); box.id = 'infoPanel'; box.style.cssText = 'position:fixed;left:8px;right:8px;top:60px;z-index:99;margin:0;padding:10px;background:rgba(0,0,0,.88);color:#9ff3ff;font:11px/1.5 monospace;white-space:pre-wrap;border:2px solid #22d3ff'; document.body.appendChild(box); on(box, 'click', () => { box.style.display = 'none'; }); }
+      const probe = document.createElement('div'); probe.style.cssText = 'position:fixed;top:0;left:0;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);visibility:hidden'; document.body.appendChild(probe);
+      const cs = getComputedStyle(probe), ar = $('app').getBoundingClientRect(), vv = window.visualViewport;
+      box.textContent = ['inner ' + innerWidth + 'x' + innerHeight, 'app ' + Math.round(ar.width) + 'x' + Math.round(ar.height), 'screen ' + screen.width + 'x' + screen.height,
+        'visual ' + (vv ? Math.round(vv.width) + 'x' + Math.round(vv.height) : 'n/a'), 'standalone ' + String(navigator.standalone), 'insets top ' + cs.paddingTop + ' bottom ' + cs.paddingBottom,
+        'field ' + W + 'x' + H + ' stage ' + stage.style.width + ' x ' + stage.style.height, 'dpr ' + window.devicePixelRatio, '(tap this box to close)'].join('\n');
+      box.style.display = 'block'; probe.remove();
+    });
+  }
 
   /* ---------------- Fullscreen ---------------- */
   function toggleFullscreen() {
