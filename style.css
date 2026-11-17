@@ -2,7 +2,7 @@
 @font-face {
   font-family: "Press Start 2P";                /* SIL Open Font License, see assets/OFL.txt */
   src: url("assets/PressStart2P-Regular.ttf") format("truetype");
-  font-display: swap;
+  font-display: block;
 }
 :root {
   --bg: #05060f;
@@ -46,7 +46,8 @@ canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: 
 .score-label { font-size: calc(11 * var(--u)); color: var(--cyan); }
 .score-val { font-size: calc(30 * var(--u)); line-height: 1.2; margin-top: calc(6 * var(--u)); transform-origin: left center; }
 .best-line { font-size: calc(10 * var(--u)); color: #b9c4ff; margin-top: calc(8 * var(--u)); }
-.lives { display: flex; gap: calc(6 * var(--u)); margin-top: calc(4 * var(--u)); }
+.lives { display: flex; gap: calc(6 * var(--u)); }
+#hud .lives { position: absolute; left: 50%; transform: translateX(-50%); top: calc(18 * var(--u) + env(safe-area-inset-top, 0px)); }
 .lives span {
   width: calc(28 * var(--u)); height: calc(24 * var(--u)); background: var(--pink); image-rendering: pixelated;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 6' shape-rendering='crispEdges'%3E%3Cpath d='M1 0h2v1H1zM4 0h2v1H4zM0 1h7v2H0zM1 3h5v1H1zM2 4h3v1H2zM3 5h1v1H3z'/%3E%3C/svg%3E") center / contain no-repeat;
@@ -193,3 +194,7 @@ canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: 
 /* iPhone home-screen app: page box as tall as the real screen (the height is set from JS) */
 html.ios-standalone, html.ios-standalone body { height: var(--screen-h); }
 html.ios-standalone #app { position: absolute; top: 0; left: 0; right: 0; bottom: auto; height: var(--screen-h); }
+
+/* hide the page for a moment until the pixel font is ready (JS adds .fonts-ready; no-JS visitors still see it) */
+html:not(.fonts-ready) #app { opacity: 0; }
+html.fonts-ready #app { opacity: 1; transition: opacity .12s linear; }

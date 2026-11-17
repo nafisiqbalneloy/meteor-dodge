@@ -37,7 +37,7 @@ Free. No sign-up. Works on PC and phone. Fills the whole screen.
 | | |
 |---|---|
 | **UFOs** | Small red saucers fly across and shoot at you. Shoot them for points and a chance at a power-up. |
-| **Bosses** | The first boss shows up at about 60 seconds (75 on Easy, 50 on Hard), then again about 80 seconds after you beat one. Each boss you beat makes the next one tougher. It gets angrier at 2/3 and 1/3 health. **Magma King** throws meteors, then rains a wall of them (find the gap). **Ice Eye** fires fans of bullets and throws meteors. **Laser Skull** fires beams (watch the red warning line, two beams at the end) and throws meteors. Beat one for 500 points, three stars and an extra life if you lost one. |
+| **Bosses** | The first boss shows up at about 55 seconds (70 on Easy, 45 on Hard), then again about 40 seconds after you beat one (50 on Easy, 32 on Hard). Each boss you beat makes the next one tougher. It gets angrier at 2/3 and 1/3 health. **Magma King** throws burning fire meteors, then rains a wall of them (find the gap). **Ice Eye** fires fans of bullets and throws meteors. **Laser Skull** fires beams (watch the red warning line, two beams at the end) and throws meteors. Beat one for 500 points, three stars and an extra life if you lost one. |
 | **Black holes** | After about 20 seconds a black hole sometimes drifts down. It pulls your ship, bends meteors and swallows stars and power-ups. Stay away from the dark centre. |
 
 ## POWER-UPS

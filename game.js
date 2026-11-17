@@ -8,6 +8,17 @@
   const $ = (id) => document.getElementById(id);
   const stage = $('stage'), canvas = $('game'), ctx = canvas.getContext('2d');
 
+  /* ---------------- Wait for the pixel font so the first screen never shows the wrong font ---------------- */
+  { const show = () => document.documentElement.classList.add('fonts-ready');
+    let done = false; const once = () => { if (!done) { done = true; show(); } };
+    try {
+      if (document.fonts && document.fonts.load) {
+        Promise.all([document.fonts.load('12px "Press Start 2P"'), document.fonts.ready]).then(once, once);
+        setTimeout(once, 1800);                       // never keep the screen hidden for long
+      } else once();
+    } catch (e) { once(); }
+  }
+
   /* ---------------- Safe storage ---------------- */
   const store = {
     get(k, d) { try { const v = localStorage.getItem('meteorDodge.' + k); return v === null ? d : v; } catch (e) { return d; } },
@@ -16,9 +27,9 @@
 
   /* ---------------- Settings / constants ---------------- */
   const DIFF = {
-    easy:   { speed: 0.75, interval: 1.4,  grace: 4.5, boss: 0.7, bossFirst: 75, bossEvery: 90, label: 'Easy' },
-    normal: { speed: 1.0,  interval: 1.0,  grace: 3.5, boss: 1.0, bossFirst: 60, bossEvery: 80, label: 'Normal' },
-    hard:   { speed: 1.3,  interval: 0.72, grace: 2.5, boss: 1.3, bossFirst: 50, bossEvery: 70, label: 'Hard' }
+    easy:   { speed: 0.75, interval: 1.4,  grace: 4.5, boss: 0.7, bossFirst: 70, bossEvery: 50, label: 'Easy' },
+    normal: { speed: 1.0,  interval: 1.0,  grace: 3.5, boss: 1.0, bossFirst: 55, bossEvery: 40, label: 'Normal' },
+    hard:   { speed: 1.3,  interval: 0.72, grace: 2.5, boss: 1.3, bossFirst: 45, bossEvery: 32, label: 'Hard' }
   };
   const SIZES = [{ r: 13, speed: 1.15 }, { r: 22, speed: 1.0 }, { r: 34, speed: 0.8 }];
   const LEVEL_SECS = 15;
@@ -65,7 +76,7 @@
   const RAPID_SECS = 8, RAPID_COOLDOWN = 0.085;
   let rapid = 0, rapidSpawnT = 22, bombSpawnT = 30;
   let combo = 0, comboT = 0, bestCombo = 0;          // chain kills quickly to raise the score multiplier
-  let boss = null, bossT = 60, bossKills = 0;
+  let boss = null, bossT = 55, bossKills = 0;
   const enemies = [];                                // little UFOs that fly across and shoot back
   const EB = [];                                     // enemy bullet pool
   for (let i = 0; i < 30; i++) EB.push({ a: false, x: 0, y: 0, vx: 0, vy: 0 });
@@ -387,8 +398,8 @@
       r: sz.r, spr: sprites[pickPal()][si], rot: Math.floor(Math.random() * 4) * 1.5708, vr: 0, si, hp: si + 1, hit: 0 };
     m.rt = rand(0.4, 1.1); meteors.push(m);
   }
-  function spawnMeteorAt(x, y, si, vx, vy) {
-    meteors.push({ x, y, vy, vx, r: SIZES[si].r, spr: sprites[pickPal()][si], rot: Math.floor(Math.random() * 4) * 1.5708, vr: 0, si, hp: si + 1, hit: 0, rt: rand(0.4, 1.1) });
+  function spawnMeteorAt(x, y, si, vx, vy, pal, fire) {
+    meteors.push({ fire: !!fire, x, y, vy, vx, r: SIZES[si].r, spr: sprites[pal === undefined ? pickPal() : pal][si], rot: Math.floor(Math.random() * 4) * 1.5708, vr: 0, si, hp: si + 1, hit: 0, rt: rand(0.4, 1.1) });
   }
   function spawnEnemy() {
     const d = DIFF[difficulty], dir = Math.random() < 0.5 ? 1 : -1;
@@ -501,7 +512,7 @@
   function bossRain() {
     // a wall of small meteors with one gap to slip through
     const n = Math.max(5, Math.floor(W / 78)), gap = 1 + Math.floor(Math.random() * (n - 2)), d = DIFF[difficulty];
-    for (let i = 0; i < n; i++) { if (i === gap || i === gap + 1) continue; spawnMeteorAt((i + 0.5) * (W / n), -24, 0, 0, 190 * d.speed); }
+    for (let i = 0; i < n; i++) { if (i === gap || i === gap + 1) continue; spawnMeteorAt((i + 0.5) * (W / n), -24, 0, 0, 190 * d.speed, 2, true); }
     toast('METEOR RAIN!', 1100);
   }
   function stepBoss(dt) {
@@ -527,7 +538,7 @@
     const throwMeteors = (n) => {
       for (let k = 0; k < n; k++) {
         const o = k - (n - 1) / 2;
-        spawnMeteorAt(clamp(boss.x + o * 46 + rand(-12, 12), 20, W - 20), mouthY, Math.random() < 0.65 ? 0 : 1, clamp((ship.x - boss.x) * 0.25, -90, 90) + o * 40, msp * (0.9 + Math.random() * 0.1));
+        spawnMeteorAt(clamp(boss.x + o * 46 + rand(-12, 12), 20, W - 20), mouthY, Math.random() < 0.65 ? 0 : 1, clamp((ship.x - boss.x) * 0.25, -90, 90) + o * 40, msp * (0.9 + Math.random() * 0.1), [2, 1, 0][boss.type], boss.type === 0);
       }
       boss.muzzle = 0.22;
     };
@@ -730,7 +741,8 @@
     stepEnemies(dt, active); if (state === 'dying' && active) return;
     stepHoles(dt, active); if (state === 'dying' && active) return;
     for (let i = meteors.length - 1; i >= 0; i--) {
-      const m = meteors[i]; m.y += m.vy * dt; m.x += m.vx * dt; m.rt -= dt; if (m.rt <= 0) { m.rot += 1.5708 * (Math.random() < 0.5 ? 1 : -1); m.rt = rand(0.45, 1.1); } if (m.hit > 0) m.hit -= dt;
+      const m = meteors[i]; m.y += m.vy * dt; m.x += m.vx * dt; m.rt -= dt;
+      if (m.fire && Math.random() < 0.4) emit(m.x + rand(-m.r * 0.3, m.r * 0.3), m.y - m.r * 0.6, 1, Math.random() < 0.5 ? '#ffb04d' : '#ff5a2a', 55, 0.35, 2.4); if (m.rt <= 0) { m.rot += 1.5708 * (Math.random() < 0.5 ? 1 : -1); m.rt = rand(0.45, 1.1); } if (m.hit > 0) m.hit -= dt;
       if (m.y > H + m.r + 20 || m.x < -60 || m.x > W + 60) { meteors.splice(i, 1); continue; }
       if (active) {
         const dx = m.x - ship.x, dy = m.y - ship.y, rr = m.r * 0.82 + ship.r;
@@ -864,7 +876,7 @@
     for (let i = 0; i < holes.length; i++) drawHole(holes[i]);
     for (let i = 0; i < items.length; i++) drawItem(items[i]);
     for (let i = 0; i < meteors.length; i++) {
-      const m = meteors[i]; ctx.save(); ctx.imageSmoothingEnabled = false; ctx.translate(m.x, m.y); ctx.rotate(m.rot); ctx.drawImage(m.spr, -m.spr.width / 2, -m.spr.height / 2); ctx.restore();
+      const m = meteors[i]; ctx.save(); ctx.imageSmoothingEnabled = false; if (m.fire) { ctx.shadowColor = '#ff7a2a'; ctx.shadowBlur = 14; } ctx.translate(m.x, m.y); ctx.rotate(m.rot); ctx.drawImage(m.spr, -m.spr.width / 2, -m.spr.height / 2); ctx.restore();
       if (m.hit > 0) { ctx.globalAlpha = Math.min(0.7, m.hit * 8); ctx.fillStyle = '#fff'; const hs = m.spr.width * 0.7; ctx.fillRect(m.x - hs / 2, m.y - hs / 2, hs, hs); ctx.globalAlpha = 1; }
     }
     for (let i = 0; i < enemies.length; i++) {
