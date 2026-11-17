@@ -27,7 +27,8 @@ Free. No sign-up. Works on PC and phone.
 - **Combo:** shoot meteors one after another to raise your score multiplier (up to x5). Getting hit resets it.
 - **UFOs:** small red saucers fly across and shoot at you. Shoot them down for points and a chance at a power-up.
 - **Bosses:** every minute or so a big boss drops in. There are 3 kinds: the Magma King throws meteors, the Ice Eye fires fans of bullets, and the Laser Skull shoots beams (watch the red warning line). Beat one for 500 points, three stars and an extra life if you lost one.
-- **Ships:** pick STAR (balanced), DART (fast, small) or TANK (slow, shoots fast) on the menu.
+- **Ships:** you start with STAR (balanced). Earn the rest: DART (fast, small) by scoring 1500 in one run, TANK (slow, shoots fast) by beating a boss, and VOID (twin shot) by scoring 5000 in one run. Pick one on the menu.
+- **Black holes:** from level 4 a black hole sometimes drifts down. It pulls your ship, bends meteors and swallows stars and power-ups. Stay away from the dark centre.
 - Retro music plays while you fly. Turn it off with the MUSIC button.
 - The game gets faster every 15 seconds.
 - **Level themes:** every 3 levels the sky changes: Deep Space, Ice Field, Lava Zone, Toxic Nebula. The meteor mix changes with it (more ice meteors in the Ice Field, more magma in the Lava Zone).

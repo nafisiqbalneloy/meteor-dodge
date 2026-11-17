@@ -29,9 +29,15 @@
   const SHIPS = {
     star: { name: 'STAR', speed: 1.0,  cd: 0.2,  r: 15, desc: 'BALANCED ALL-ROUNDER' },
     dart: { name: 'DART', speed: 1.3,  cd: 0.24, r: 12, desc: 'FAST AND SMALL TARGET' },
-    tank: { name: 'TANK', speed: 0.82, cd: 0.15, r: 17, desc: 'SLOW BUT SHOOTS FAST' }
+    tank: { name: 'TANK', speed: 0.82, cd: 0.15, r: 17, desc: 'SLOW BUT SHOOTS FAST' },
+    void: { name: 'VOID', speed: 1.12, cd: 0.19, r: 13, desc: 'TWIN SHOT', twin: true }
   };
-  let shipId = store.get('ship', 'star'); if (!SHIPS[shipId]) shipId = 'star';
+  // Dart, Tank and Void are earned
+  const UNLOCK_HINT = { dart: 'UNLOCK: SCORE 1500 IN ONE RUN', tank: 'UNLOCK: BEAT A BOSS', void: 'UNLOCK: SCORE 5000 IN ONE RUN' };
+  const unlocked = new Set(store.get('unlocked', 'star').split(',').filter((k) => SHIPS[k]));
+  unlocked.add('star');
+  { const b0 = parseInt(store.get('best', '0'), 10) || 0; if (b0 >= 1500) unlocked.add('dart'); if (b0 >= 5000) unlocked.add('void'); }
+  let shipId = store.get('ship', 'star'); if (!SHIPS[shipId] || !unlocked.has(shipId)) shipId = 'star';
   let musicOn = store.get('music', '1') === '1';
   const COMBO_SECS = 2.2, BOSS_FIRST = 55, BOSS_EVERY = 70;
   let difficulty = store.get('difficulty', 'normal'); if (!DIFF[difficulty]) difficulty = 'normal';
@@ -65,6 +71,7 @@
   for (let i = 0; i < 30; i++) EB.push({ a: false, x: 0, y: 0, vx: 0, vy: 0 });
   let ebCursor = 0, enemyT = 24;
   let gpDir = 0, gpFire = false; const gpPrev = { a: false, st: false };
+  const holes = []; let holeT = 42;                  // black hole hazard
   const POPS = [];                                   // floating "+30" texts (fixed pool)
   for (let i = 0; i < 24; i++) POPS.push({ a: false, x: 0, y: 0, l: 0, txt: '', c: '#fff' });
   let popCursor = 0;
@@ -117,6 +124,7 @@
     boom()  { noise(0.22, 0.22); tone(220, 0.18, 'sawtooth', 0.07, 60); },
     best()  { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.15, 'square', 0.07, 0, i * 0.1)); },
     warn()  { [0, 1, 2].forEach((i) => { tone(420, 0.22, 'square', 0.07, 300, i * 0.32); tone(300, 0.1, 'sawtooth', 0.05, 0, i * 0.32); }); },
+    hole()  { noise(0.6, 0.2); tone(90, 0.7, 'sawtooth', 0.09, 35); },
     win()   { [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 0.16, 'square', 0.08, 0, i * 0.09)); noise(0.5, 0.3); }
   };
 
@@ -287,6 +295,11 @@
     setTimeout(() => { if (stamp === lastToast) toastEl.classList.remove('show'); }, ms || 1400);
   }
   function shake(mag, dur) { shakeMag = mag; shakeT = dur; }
+  function unlock(id) {
+    if (unlocked.has(id)) return;
+    unlocked.add(id); store.set('unlocked', [...unlocked].join(','));
+    toast('NEW SHIP: ' + SHIPS[id].name + '!', 2600); sfx.best(); buzz([30, 30, 60]);
+  }
   function buzz(pattern) { if (!soundOn) return; try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) { /* not supported */ } }
   function fmt(n) { return String(Math.floor(n)); }
 
@@ -304,8 +317,8 @@
     document.querySelectorAll('.diff-btn:not(.ship-btn)').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.diff === difficulty)));
     const sb = $('btnSound'); sb.textContent = 'SOUND: ' + (soundOn ? 'ON' : 'OFF'); sb.setAttribute('aria-pressed', String(soundOn));
     const mb = $('btnMusic'); mb.textContent = 'MUSIC: ' + (musicOn ? 'ON' : 'OFF'); mb.setAttribute('aria-pressed', String(musicOn));
-    document.querySelectorAll('.ship-btn').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.ship === shipId)));
-    $('shipDesc').textContent = SHIPS[shipId].desc; drawPreview();
+    document.querySelectorAll('.ship-btn').forEach((b) => { const id = b.dataset.ship; b.setAttribute('aria-checked', String(id === shipId)); b.classList.toggle('locked', !unlocked.has(id)); });
+    $('shipDesc').textContent = unlocked.has(shipId) ? SHIPS[shipId].desc : UNLOCK_HINT[shipId]; drawPreview();
     const pb = $('btnPadToggle'); pb.textContent = 'TOUCH PAD: ' + (padOn ? 'ON' : 'OFF'); pb.setAttribute('aria-pressed', String(padOn));
     stage.classList.toggle('pad-on', padOn);
   }
@@ -338,7 +351,8 @@
     meteors.length = 0; items.length = 0; P.forEach((p) => { p.a = false; }); B.forEach((b) => { b.a = false; });
     fireT = 0.15; keys.fire = false; padFire = false; fireQueued = false; squad = 0; squadT = 0; wingSpawnT = 14; rapid = 0; rapidSpawnT = 22; bombSpawnT = 30;
     enemies.length = 0; EB.forEach((e) => { e.a = false; }); enemyT = 24; combo = 0; comboT = 0; bestCombo = 0; boss = null; bossT = BOSS_FIRST; bossKills = 0; POPS.forEach((p) => { p.a = false; });
-    ship.r = SHIPS[shipId].r; resetTheme();
+    if (!unlocked.has(shipId)) shipId = 'star';
+    ship.r = SHIPS[shipId].r; resetTheme(); holes.length = 0; holeT = 42;
     $('newBest').classList.add('hidden');
     renderLives(); renderHud(); hudBest.textContent = fmt(best);
     setState('playing'); sfx.start();
@@ -419,6 +433,48 @@
       }
     }
   }
+  function spawnHole() {
+    holes.push({ x: rand(110, Math.max(120, W - 110)), y: -110, vy: 62, core: 26, pull: 215, ph: 0, cd: 0 });
+    toast('BLACK HOLE! KEEP AWAY', 1700); sfx.hole(); buzz([50, 30, 50]);
+  }
+  function stepHoles(dt, active) {
+    for (let i = holes.length - 1; i >= 0; i--) {
+      const h = holes[i]; h.y += h.vy * dt; h.ph += dt; if (h.cd > 0) h.cd -= dt;
+      if (h.y > H + 130) { holes.splice(i, 1); continue; }
+      for (let j = meteors.length - 1; j >= 0; j--) {          // bend and swallow meteors
+        const m = meteors[j], dx = h.x - m.x, dy = h.y - m.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+        if (d < h.pull) { const f = 1 - d / h.pull; m.vx += dx / d * 260 * f * dt; m.y += dy / d * 70 * f * dt; }
+        if (d < h.core + m.r * 0.3) { emit(m.x, m.y, 8, '#a855f7', 140, 0.4, 2.2); meteors.splice(j, 1); }
+      }
+      for (let j = items.length - 1; j >= 0; j--) {            // power-ups and stars get swallowed too: grab them first
+        const it = items[j], dx = h.x - it.x, dy = h.y - it.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+        if (d < h.pull) { const f = 1 - d / h.pull; it.x += dx / d * 120 * f * dt; it.y += dy / d * 50 * f * dt; }
+        if (d < h.core) { emit(it.x, it.y, 8, '#c084fc', 140, 0.4, 2.2); items.splice(j, 1); }
+      }
+      if (active && state === 'playing') {
+        const dx = h.x - ship.x, dy = h.y - ship.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+        if (d < h.pull) { const f = 1 - d / h.pull; ship.x = clamp(ship.x + (dx / d) * 230 * f * dt, 24, W - 24); }
+        if (d < h.core + ship.r * 0.6) {
+          if (shield > 0) { if (h.cd <= 0) { shield = Math.max(0, shield - 2.5); h.cd = 0.6; emit(ship.x, ship.y, 14, '#22d3ff', 200, 0.4, 2.5); shake(6, 0.2); sfx.hit(); } }
+          else if (invuln <= 0) { hurt(); if (state === 'dying') return; }
+        }
+      }
+    }
+  }
+  function drawHole(h) {
+    ctx.save();
+    ctx.globalAlpha = 0.14; ctx.fillStyle = '#a855f7';
+    for (let i = 0; i < 30; i++) { const a = i * 0.2094 + h.ph * 0.2; ctx.fillRect(Math.round(h.x + Math.cos(a) * h.pull) - 2, Math.round(h.y + Math.sin(a) * h.pull) - 2, 4, 4); }   // faint pull range
+    for (let i = 0; i < 26; i++) {                                                                                                       // swirling ring
+      const a = h.ph * 1.6 + i * 0.2417, r = h.core + 10 + (i % 4) * 8;
+      ctx.globalAlpha = 0.45 + 0.35 * Math.sin(h.ph * 3 + i); ctx.fillStyle = i % 2 ? '#a855f7' : '#22d3ff';
+      ctx.fillRect(Math.round(h.x + Math.cos(a) * r) - 3, Math.round(h.y + Math.sin(a) * r) - 3, 6, 6);
+    }
+    ctx.globalAlpha = 1;
+    const disc = (r, col) => { ctx.fillStyle = col; for (let yy = -r; yy < r; yy += 4) { const w = Math.floor(Math.sqrt(r * r - yy * yy) / 4) * 4; ctx.fillRect(Math.round(h.x - w), Math.round(h.y + yy), Math.round(w * 2), 5); } };
+    disc(h.core + 6, '#7c3aed'); disc(h.core, '#000000');
+    ctx.restore();
+  }
   function spawnItem(kind) { items.push({ kind, x: rand(30, W - 30), y: -20, vy: 110, r: 13, ph: Math.random() * 6 }); }
   function spawnItemAt(kind, x, y) { items.push({ kind, x: clamp(x, 30, W - 30), y, vy: 110, r: 13, ph: Math.random() * 6 }); }
   function pop(x, y, txt, c) { const p = POPS[popCursor]; popCursor = (popCursor + 1) % POPS.length; p.a = true; p.x = x; p.y = y; p.l = 0.8; p.txt = txt; p.c = c || '#fff'; }
@@ -479,7 +535,7 @@
     }
   }
   function defeatBoss() {
-    const bx = boss.x, by = boss.y; bossKills++; boss = null; bossT = BOSS_EVERY;
+    const bx = boss.x, by = boss.y; bossKills++; boss = null; bossT = BOSS_EVERY; unlock('tank');
     score += 500; pop(bx, by, '+500', '#ffd36b'); popScore();
     emit(bx, by, 110, '#ff9a4d', 420, 1.2, 4); emit(bx, by, 70, '#ffd36b', 320, 1.0, 3.5); emit(bx, by, 50, '#ffffff', 260, 0.8, 3);
     shake(22, 0.7); sfx.win(); buzz([40, 30, 40, 30, 140]); EB.forEach((e) => { e.a = false; });
@@ -519,6 +575,8 @@
     }
 
     // score: survival points
+    if (score >= 1500) unlock('dart');
+    if (score >= 5000) unlock('void');
     scoreFrac += dt * 10 * (1 + level * 0.15);
     if (scoreFrac >= 1) { const add = Math.floor(scoreFrac); score += add; scoreFrac -= add; }
     checkBest();
@@ -561,6 +619,7 @@
     if (comboT > 0) { comboT -= dt; if (comboT <= 0) combo = 0; }
     if (!boss) { bossT -= dt; if (bossT <= 0) spawnBoss(); } else stepBoss(dt);
     if (state === 'dying') return;
+    holeT -= dt; if (holeT <= 0) { if (!boss && level >= 3 && holes.length === 0) spawnHole(); holeT = rand(26, 40); }
     // enemy UFOs: from about 20 seconds in, never during a boss, at most two at a time
     enemyT -= dt; if (enemyT <= 0) { if (!boss && t > 20 && enemies.length < 2) spawnEnemy(); enemyT = rand(9, 15) * Math.max(0.6, 1 - level * 0.05) * (difficulty === 'hard' ? 0.8 : difficulty === 'easy' ? 1.3 : 1); }
 
@@ -578,7 +637,7 @@
     b.a = true; b.x = x; b.y = y; emit(x, y, 3, '#9ff3ff', 70, 0.2, 1.8);
   }
   function shoot() {
-    fireBullet(ship.x, ship.y - 28);
+    if (SHIPS[shipId].twin) { fireBullet(ship.x - 9, ship.y - 26); fireBullet(ship.x + 9, ship.y - 26); } else fireBullet(ship.x, ship.y - 28);
     for (let k = 0; k < squad; k++) fireBullet(ship.x + WING_X[k], ship.y + WING_Y - 28 * WING_SCALE);
     sfx.shoot();
   }
@@ -639,6 +698,7 @@
     shownScore += (score - shownScore) * Math.min(1, dt * 10); if (score - shownScore < 0.5) shownScore = score;
     stepBullets(dt, active);
     stepEnemies(dt, active); if (state === 'dying' && active) return;
+    stepHoles(dt, active); if (state === 'dying' && active) return;
     for (let i = meteors.length - 1; i >= 0; i--) {
       const m = meteors[i]; m.y += m.vy * dt; m.x += m.vx * dt; m.rt -= dt; if (m.rt <= 0) { m.rot += 1.5708 * (Math.random() < 0.5 ? 1 : -1); m.rt = rand(0.45, 1.1); } if (m.hit > 0) m.hit -= dt;
       if (m.y > H + m.r + 20 || m.x < -60 || m.x > W + 60) { meteors.splice(i, 1); continue; }
@@ -678,6 +738,8 @@
            'o..owccc', 'oo.owccd', 'owoowccd', 'owcccccd', 'opcccccd', 'oppoocdd', '.oo..odd', '.....ood'],
     dart: ['.......o', '.......o', '......ow', '......ow', '.....owv', '.....owv', '.....owc', '....owcc',
            '....owcc', '...owccc', '...owccc', '..owcccd', '.opwcccd', 'opp.occd', 'o....odd', '.....ood'],
+    void: ['.......o', '......ow', '.....owc', '.o...owc', 'owo.owcv', 'owwoowcv', 'owcwowcc', 'owccwwcc',
+           'opcccwcc', 'opccccdd', 'oppccddd', '.oppcddd', '..oopcdd', '....oodd', '.....ood', '......oo'],
     tank: ['.......o', '......ow', '.....owc', '....owcv', '...owccv', '.o.owccc', 'owowcccc', 'owwwcccd',
            'owcccccd', 'owcccccd', 'opcccddd', 'opoccddd', 'ooo.oodd', '....oodd', '.....ood', '......oo']
   };
@@ -686,6 +748,7 @@
     star: { o: '#0b3a66', w: '#ffffff', c: '#22d3ff', d: '#1688b8', p: '#ff3da8', v: '#c084fc', i: '#1688b8' },
     dart: { o: '#0b3b22', w: '#f0fff4', c: '#4ade80', d: '#16a34a', p: '#ffd36b', v: '#22d3ff', i: '#16a34a' },
     tank: { o: '#4a2208', w: '#fff3e0', c: '#ffb04d', d: '#d9731a', p: '#ff3da8', v: '#22d3ff', i: '#d9731a' },
+    void: { o: '#2a0b4a', w: '#f5e8ff', c: '#a855f7', d: '#6b21a8', p: '#ff3da8', v: '#22d3ff', i: '#6b21a8' },
     wing: { o: '#3b1768', w: '#f3e8ff', c: '#c084fc', d: '#8b4fd0', p: '#ff3da8', v: '#ffd36b', i: '#8b4fd0' }
   };
   const shipSprites = {}, wingSprites = {};
@@ -768,6 +831,7 @@
       const s = starsBG[i]; ctx.globalAlpha = 0.45 + 0.4 * Math.sin(s.ph); ctx.fillStyle = s.s > 1.8 ? starTint : '#fff'; ctx.fillRect(s.x, s.y, s.s, s.s);
     }
     ctx.globalAlpha = 1;
+    for (let i = 0; i < holes.length; i++) drawHole(holes[i]);
     for (let i = 0; i < items.length; i++) drawItem(items[i]);
     for (let i = 0; i < meteors.length; i++) {
       const m = meteors[i]; ctx.save(); ctx.imageSmoothingEnabled = false; ctx.translate(m.x, m.y); ctx.rotate(m.rot); ctx.drawImage(m.spr, -m.spr.width / 2, -m.spr.height / 2); ctx.restore();
@@ -928,7 +992,11 @@
   click('btnPauseMenu', toMenu); click('btnOverMenu', toMenu);
   click('btnSound', () => { soundOn = !soundOn; store.set('sound', soundOn ? '1' : '0'); refreshMenu(); if (soundOn) sfx.star(); });
   click('btnMusic', () => { musicOn = !musicOn; store.set('music', musicOn ? '1' : '0'); refreshMenu(); if (!musicOn) music.stop(); });
-  document.querySelectorAll('.ship-btn').forEach((b) => on(b, 'click', () => { shipId = b.dataset.ship; store.set('ship', shipId); refreshMenu(); }));
+  document.querySelectorAll('.ship-btn').forEach((b) => on(b, 'click', () => {
+    const id = b.dataset.ship;
+    if (!unlocked.has(id)) { $('shipDesc').textContent = UNLOCK_HINT[id]; return; }   // still locked: just show how to unlock it
+    shipId = id; store.set('ship', shipId); refreshMenu();
+  }));
   click('btnPadToggle', () => { padOn = !padOn; store.set('pad2', padOn ? '1' : '0'); refreshMenu(); });
   click('btnShare', () => share(false)); click('btnShare2', () => share(true));
   document.querySelectorAll('.diff-btn:not(.ship-btn)').forEach((b) => on(b, 'click', () => { difficulty = b.dataset.diff; store.set('difficulty', difficulty); refreshMenu(); }));
@@ -977,8 +1045,8 @@
 
   // small hook used by the automated tests (read-only helpers; no effect on normal play)
   window.MeteorDodge = {
-    get: () => ({ W, state, score, lives, stars, shield, squad, squadT, rapid, theme: themeIdx, themeFade, combo, bestCombo, shipId, boss: boss ? { hp: boss.hp, max: boss.max, x: boss.x, y: boss.y } : null, bossKills, enemies: enemies.length, ebullets: EB.filter((e) => e.a).length, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
+    get: () => ({ W, state, score, lives, stars, shield, squad, squadT, rapid, theme: themeIdx, themeFade, holes: holes.length, unlocked: [...unlocked].join(','), combo, bestCombo, shipId, boss: boss ? { hp: boss.hp, max: boss.max, x: boss.x, y: boss.y } : null, bossKills, enemies: enemies.length, ebullets: EB.filter((e) => e.a).length, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
     step: update, startGame, pauseGame, resumeGame, ship, meteors, items, keys, bullets: B,
-    spawnMeteor, spawnItem, spawnBoss, spawnEnemy, enemyList: enemies, eb: EB, destroy, music, setShip: (id) => { shipId = id; ship.r = SHIPS[id].r; }
+    spawnMeteor, spawnItem, spawnBoss, spawnEnemy, spawnHole, holeList: holes, unlock, enemyList: enemies, eb: EB, destroy, music, setShip: (id) => { shipId = id; ship.r = SHIPS[id].r; }
   };
 })();

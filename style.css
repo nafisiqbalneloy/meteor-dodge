@@ -185,3 +185,6 @@ canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: 
 #stage:not(.wide-layout) .how h2 { margin-bottom: calc(6 * var(--u)); }
 #stage:not(.wide-layout) .how ul { line-height: 1.75; font-size: calc(9 * var(--u)); }
 #stage:not(.wide-layout) .btn.primary { min-height: 0; padding-top: calc(11 * var(--u)); padding-bottom: calc(11 * var(--u)); }
+
+.diff-btn.locked { opacity: .4; }
+.diff-btn.locked::after { content: ' ?'; }
