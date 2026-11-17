@@ -16,9 +16,9 @@
 
   /* ---------------- Settings / constants ---------------- */
   const DIFF = {
-    easy:   { speed: 0.75, interval: 1.4,  grace: 4.5, boss: 0.7, label: 'Easy' },
-    normal: { speed: 1.0,  interval: 1.0,  grace: 3.5, boss: 1.0, label: 'Normal' },
-    hard:   { speed: 1.3,  interval: 0.72, grace: 2.5, boss: 1.3, label: 'Hard' }
+    easy:   { speed: 0.75, interval: 1.4,  grace: 4.5, boss: 0.7, bossFirst: 75, bossEvery: 90, label: 'Easy' },
+    normal: { speed: 1.0,  interval: 1.0,  grace: 3.5, boss: 1.0, bossFirst: 60, bossEvery: 80, label: 'Normal' },
+    hard:   { speed: 1.3,  interval: 0.72, grace: 2.5, boss: 1.3, bossFirst: 50, bossEvery: 70, label: 'Hard' }
   };
   const SIZES = [{ r: 13, speed: 1.15 }, { r: 22, speed: 1.0 }, { r: 34, speed: 0.8 }];
   const LEVEL_SECS = 15;
@@ -39,7 +39,7 @@
   { const b0 = parseInt(store.get('best', '0'), 10) || 0; if (b0 >= 1500) unlocked.add('dart'); if (b0 >= 5000) unlocked.add('void'); }
   let shipId = store.get('ship', 'star'); if (!SHIPS[shipId] || !unlocked.has(shipId)) shipId = 'star';
   let musicOn = store.get('music', '1') === '1';
-  const COMBO_SECS = 2.2, BOSS_FIRST = 55, BOSS_EVERY = 70;
+  const COMBO_SECS = 2.2;
   let difficulty = store.get('difficulty', 'normal'); if (!DIFF[difficulty]) difficulty = 'normal';
   let soundOn = store.get('sound', '1') === '1';
   let padOn = store.get('pad2', '0') === '1';
@@ -65,7 +65,7 @@
   const RAPID_SECS = 8, RAPID_COOLDOWN = 0.085;
   let rapid = 0, rapidSpawnT = 22, bombSpawnT = 30;
   let combo = 0, comboT = 0, bestCombo = 0;          // chain kills quickly to raise the score multiplier
-  let boss = null, bossT = BOSS_FIRST, bossKills = 0;
+  let boss = null, bossT = 60, bossKills = 0;
   const enemies = [];                                // little UFOs that fly across and shoot back
   const EB = [];                                     // enemy bullet pool
   for (let i = 0; i < 30; i++) EB.push({ a: false, x: 0, y: 0, vx: 0, vy: 0 });
@@ -351,7 +351,7 @@
     ship.x = W / 2; ship.vx = 0; pointerX = null; padDir = 0;
     meteors.length = 0; items.length = 0; P.forEach((p) => { p.a = false; }); B.forEach((b) => { b.a = false; });
     fireT = 0.15; keys.fire = false; padFire = false; fireQueued = false; squad = 0; squadT = 0; wingSpawnT = 14; rapid = 0; rapidSpawnT = 22; bombSpawnT = 30;
-    enemies.length = 0; EB.forEach((e) => { e.a = false; }); enemyT = 24; combo = 0; comboT = 0; bestCombo = 0; boss = null; bossT = BOSS_FIRST; bossKills = 0; POPS.forEach((p) => { p.a = false; });
+    enemies.length = 0; EB.forEach((e) => { e.a = false; }); enemyT = 24; combo = 0; comboT = 0; bestCombo = 0; boss = null; bossT = DIFF[difficulty].bossFirst; bossKills = 0; POPS.forEach((p) => { p.a = false; });
     if (!unlocked.has(shipId)) shipId = 'star';
     ship.r = SHIPS[shipId].r; resetTheme(); holes.length = 0; holeT = 22;
     $('newBest').classList.add('hidden');
@@ -490,9 +490,9 @@
   }
   const BOSS_NAMES = ['MAGMA KING', 'ICE EYE', 'LASER SKULL'];
   function spawnBoss() {
-    const d = DIFF[difficulty], hp = Math.round((44 + level * 3) * d.boss), type = bossKills % 3;
+    const d = DIFF[difficulty], hp = Math.round((52 + level * 3) * d.boss * (1 + 0.12 * Math.min(bossKills, 5))), type = bossKills % 3;
     boss = { x: W / 2, y: -BOSS_R - 20, ty: 150, ph: 0, hp, max: hp, hit: 0, fireT: 1.6, r: BOSS_R, type, beam: null, beamT: 2.4, volley: 0, phase: 0, muzzle: 0, rainT: 5, dir: Math.random() < 0.5 ? 1 : -1 };
-    toast('WARNING! ' + BOSS_NAMES[type], 1900); sfx.warn(); shake(6, 0.4); buzz([60, 40, 60]);
+    toast('WARNING! ' + BOSS_NAMES[type] + (bossKills > 0 ? ' #' + (bossKills + 1) : ''), 1900); sfx.warn(); shake(6, 0.4); buzz([60, 40, 60]);
   }
   function ebFire(x, y, ang, sp) {
     const e = EB[ebCursor]; ebCursor = (ebCursor + 1) % EB.length;
@@ -521,7 +521,7 @@
     if (boss.x > hi) { boss.x = hi; boss.dir = -1; } else if (boss.x < lo) { boss.x = lo; boss.dir = 1; }
     if (boss.y < boss.ty - 2) return;
     // attack speed: faster each phase, slower on Easy, faster on Hard
-    const rate = (1 + phase * 0.25) / (difficulty === 'easy' ? 1.25 : difficulty === 'hard' ? 0.85 : 1);
+    const rate = (1 + phase * 0.25) * (1 + 0.06 * Math.min(bossKills, 5)) / (difficulty === 'easy' ? 1.25 : difficulty === 'hard' ? 0.85 : 1);
     boss.fireT -= dt * rate;
     const mouthY = boss.y + boss.r * 0.7, msp = rand(230, 300) * d.speed;
     const throwMeteors = (n) => {
@@ -532,7 +532,7 @@
       boss.muzzle = 0.22;
     };
     if (boss.type === 0) {                                          // MAGMA KING: throws meteors, then rains them
-      if (boss.fireT <= 0) { boss.fireT = 1.05; boss.volley++; throwMeteors(Math.min(3, 1 + phase)); }
+      if (boss.fireT <= 0) { boss.fireT = 0.95; boss.volley++; throwMeteors(Math.min(bossKills >= 3 ? 4 : 3, 1 + phase)); }
       if (phase >= 1) { boss.rainT -= dt * rate; if (boss.rainT <= 0) { boss.rainT = 8; bossRain(); } }
     } else if (boss.type === 1) {                                   // ICE EYE: fans of bullets + a meteor every volley
       if (boss.fireT <= 0) {
@@ -565,7 +565,7 @@
     }
   }
   function defeatBoss() {
-    const bx = boss.x, by = boss.y; bossKills++; boss = null; bossT = BOSS_EVERY; unlock('tank');
+    const bx = boss.x, by = boss.y; bossKills++; boss = null; bossT = DIFF[difficulty].bossEvery; unlock('tank');
     score += 500; pop(bx, by, '+500', '#ffd36b'); popScore();
     emit(bx, by, 110, '#ff9a4d', 420, 1.2, 4); emit(bx, by, 70, '#ffd36b', 320, 1.0, 3.5); emit(bx, by, 50, '#ffffff', 260, 0.8, 3);
     shake(22, 0.7); sfx.win(); buzz([40, 30, 40, 30, 140]); EB.forEach((e) => { e.a = false; });
