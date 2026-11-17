@@ -364,7 +364,7 @@
   function endGame() {
     const isBest = score > prevBest;
     if (score > best) { best = Math.floor(score); store.set('best', best); }
-    $('ovScore').textContent = fmt(score); $('ovBest').textContent = fmt(best); $('ovStars').textContent = stars;
+    $('ovScore').textContent = fmt(score); $('ovBest').textContent = fmt(best); $('ovStars').textContent = stars; $('ovBosses').textContent = bossKills; $('ovCombo').textContent = bestCombo;
     $('newBest').classList.toggle('hidden', !isBest);
     if (isBest) setTimeout(() => { if (state === 'over') sfx.best(); }, 500);
     setState('over'); refreshMenu();
@@ -490,49 +490,76 @@
   }
   const BOSS_NAMES = ['MAGMA KING', 'ICE EYE', 'LASER SKULL'];
   function spawnBoss() {
-    const d = DIFF[difficulty], hp = Math.round((34 + level * 4) * d.boss), type = bossKills % 3;
-    boss = { x: W / 2, y: -BOSS_R - 20, ty: 150, ph: 0, hp, max: hp, hit: 0, fireT: 1.6, r: BOSS_R, type, beam: null, beamT: 2.6, volley: 0, dir: Math.random() < 0.5 ? 1 : -1 };
+    const d = DIFF[difficulty], hp = Math.round((44 + level * 3) * d.boss), type = bossKills % 3;
+    boss = { x: W / 2, y: -BOSS_R - 20, ty: 150, ph: 0, hp, max: hp, hit: 0, fireT: 1.6, r: BOSS_R, type, beam: null, beamT: 2.4, volley: 0, phase: 0, muzzle: 0, rainT: 5, dir: Math.random() < 0.5 ? 1 : -1 };
     toast('WARNING! ' + BOSS_NAMES[type], 1900); sfx.warn(); shake(6, 0.4); buzz([60, 40, 60]);
   }
   function ebFire(x, y, ang, sp) {
     const e = EB[ebCursor]; ebCursor = (ebCursor + 1) % EB.length;
     e.a = true; e.x = x; e.y = y; e.vx = Math.cos(ang) * sp; e.vy = Math.sin(ang) * sp;
   }
+  function bossRain() {
+    // a wall of small meteors with one gap to slip through
+    const n = Math.max(5, Math.floor(W / 78)), gap = 1 + Math.floor(Math.random() * (n - 2)), d = DIFF[difficulty];
+    for (let i = 0; i < n; i++) { if (i === gap || i === gap + 1) continue; spawnMeteorAt((i + 0.5) * (W / n), -24, 0, 0, 190 * d.speed); }
+    toast('METEOR RAIN!', 1100);
+  }
   function stepBoss(dt) {
     if (!boss) return;
     const d = DIFF[difficulty], frac = boss.hp / boss.max;
-    boss.ph += dt; if (boss.hit > 0) boss.hit -= dt;
-    if (boss.y < boss.ty) boss.y = Math.min(boss.ty, boss.y + 110 * dt);
+    boss.ph += dt; if (boss.hit > 0) boss.hit -= dt; if (boss.muzzle > 0) boss.muzzle -= dt;
+    if (boss.y < boss.ty) boss.y = Math.min(boss.ty, boss.y + 110 * dt);   // fly in from the top
+    // the boss gets angrier at 2/3 and 1/3 health
+    const phase = frac < 0.34 ? 2 : frac < 0.67 ? 1 : 0;
+    if (phase > boss.phase) {
+      boss.phase = phase; toast(phase === 1 ? 'BOSS IS ANGRY!' : 'FINAL RAGE!', 1500); shake(10, 0.4); sfx.warn(); buzz([40, 30, 40]);
+      emit(boss.x, boss.y, 40, '#ff3d5a', 300, 0.8, 3);
+    }
     // steady side-to-side patrol (speed no longer grows with screen width)
-    const lo = boss.r + 15, hi = Math.max(lo, W - boss.r - 15), sp = (78 + (1 - frac) * 38) * (0.75 + d.speed * 0.25) * (1 + (W / BASE_W - 1) * 0.25);
-    boss.x += boss.dir * sp * dt;
+    const lo = boss.r + 15, hi = Math.max(lo, W - boss.r - 15), sp0 = (78 + (1 - frac) * 38) * (0.75 + d.speed * 0.25) * (1 + (W / BASE_W - 1) * 0.25);
+    boss.x += boss.dir * sp0 * dt;
     if (boss.x > hi) { boss.x = hi; boss.dir = -1; } else if (boss.x < lo) { boss.x = lo; boss.dir = 1; }
     if (boss.y < boss.ty - 2) return;
-    boss.fireT -= dt * (1 + (1 - frac) * 0.9);
-    if (boss.type === 0 && boss.fireT <= 0) {                       // MAGMA: throws meteors
-      boss.fireT = 1.15;
-      const sp = rand(230, 300) * d.speed;
-      spawnMeteorAt(boss.x + rand(-34, 34), boss.y + boss.r * 0.7, Math.random() < 0.7 ? 0 : 1, clamp((ship.x - boss.x) * 0.25, -90, 90), sp);
-      if (frac < 0.5) spawnMeteorAt(boss.x + rand(-50, 50), boss.y + boss.r * 0.7, 0, rand(-70, 70), sp * 0.9);
-    } else if (boss.type === 1 && boss.fireT <= 0) {                // ICE: fans of bullets
-      boss.fireT = 1.6; boss.volley++;
-      const aim = Math.atan2(ship.y - boss.y, ship.x - boss.x), n = frac < 0.5 ? 5 : 3;
-      for (let k = 0; k < n; k++) ebFire(boss.x, boss.y + boss.r * 0.6, aim + (k - (n - 1) / 2) * 0.27, 240 * d.speed);
-      if (boss.volley % 2 === 0) spawnMeteorAt(boss.x + rand(-40, 40), boss.y + boss.r * 0.7, 0, rand(-60, 60), rand(230, 290) * d.speed);
-    } else if (boss.type === 2) {                                   // SKULL: aimed laser beams + a few meteors
-      if (boss.fireT <= 0) { boss.fireT = 2.2; spawnMeteorAt(boss.x + rand(-40, 40), boss.y + boss.r * 0.7, 0, rand(-70, 70), rand(230, 290) * d.speed); }
+    // attack speed: faster each phase, slower on Easy, faster on Hard
+    const rate = (1 + phase * 0.25) / (difficulty === 'easy' ? 1.25 : difficulty === 'hard' ? 0.85 : 1);
+    boss.fireT -= dt * rate;
+    const mouthY = boss.y + boss.r * 0.7, msp = rand(230, 300) * d.speed;
+    const throwMeteors = (n) => {
+      for (let k = 0; k < n; k++) {
+        const o = k - (n - 1) / 2;
+        spawnMeteorAt(clamp(boss.x + o * 46 + rand(-12, 12), 20, W - 20), mouthY, Math.random() < 0.65 ? 0 : 1, clamp((ship.x - boss.x) * 0.25, -90, 90) + o * 40, msp * (0.9 + Math.random() * 0.1));
+      }
+      boss.muzzle = 0.22;
+    };
+    if (boss.type === 0) {                                          // MAGMA KING: throws meteors, then rains them
+      if (boss.fireT <= 0) { boss.fireT = 1.05; boss.volley++; throwMeteors(Math.min(3, 1 + phase)); }
+      if (phase >= 1) { boss.rainT -= dt * rate; if (boss.rainT <= 0) { boss.rainT = 8; bossRain(); } }
+    } else if (boss.type === 1) {                                   // ICE EYE: fans of bullets + a meteor every volley
+      if (boss.fireT <= 0) {
+        boss.fireT = 1.5; boss.volley++;
+        const aim = Math.atan2(ship.y - boss.y, ship.x - boss.x), n = 3 + phase * 2;
+        for (let k = 0; k < n; k++) ebFire(boss.x, mouthY, aim + (k - (n - 1) / 2) * 0.26, 235 * d.speed);
+        throwMeteors(1);
+      }
+    } else {                                                        // LASER SKULL: aimed beams (two in the last phase) + meteors
+      if (boss.fireT <= 0) { boss.fireT = 1.7; throwMeteors(phase >= 2 ? 2 : 1); }
       if (!boss.beam) {
-        boss.beamT -= dt * (1 + (1 - frac) * 0.6);
-        if (boss.beamT <= 0) boss.beam = { x: clamp(ship.x, 30, W - 30), t: 0.95, on: false };
+        boss.beamT -= dt * rate;
+        if (boss.beamT <= 0) {
+          const xs = [clamp(ship.x, 30, W - 30)];
+          if (phase >= 2) xs.push(clamp(ship.x + (Math.random() < 0.5 ? -1 : 1) * 120, 30, W - 30));
+          boss.beam = { xs, t: 0.95, on: false };
+        }
       } else {
         const bm = boss.beam; bm.t -= dt;
         if (!bm.on && bm.t <= 0) { bm.on = true; bm.t = 0.45; shake(5, 0.3); sfx.boom(); buzz(40); }
         else if (bm.on) {
-          if (Math.abs(ship.x - bm.x) < 22 + ship.r * 0.4 && state === 'playing') {
+          const inBeam = bm.xs.some((bx) => Math.abs(ship.x - bx) < 22 + ship.r * 0.4);
+          if (inBeam && state === 'playing') {
             if (shield > 0) { if (Math.random() < 0.3) emit(ship.x, ship.y - 20, 4, '#22d3ff', 160, 0.3, 2); }
             else if (invuln <= 0) hurt();
           }
-          if (bm.t <= 0) { boss.beam = null; boss.beamT = frac < 0.5 ? 1.8 : 2.6; }
+          if (bm.t <= 0) { boss.beam = null; boss.beamT = 2.3; }
         }
       }
     }
@@ -609,7 +636,7 @@
     if (spawnT <= 0) {
       const ramp = Math.max(0.36, 1 - t / 110), grace = t < d.grace ? 1.8 : 1;
       // wider field => proportionally more meteors, so a big screen isn't easier than a phone
-      spawnMeteor(); spawnT = 0.72 * d.interval * ramp * grace * rand(0.75, 1.25) / Math.pow(W / BASE_W, 0.8) * (boss ? 1.9 : 1);
+      spawnMeteor(); spawnT = 0.72 * d.interval * ramp * grace * rand(0.75, 1.25) / Math.pow(W / BASE_W, 0.8) * (boss ? 1.35 : 1);
       if (level >= 3 && !boss && Math.random() < 0.2) spawnMeteor();
     }
     starT -= dt; if (starT <= 0) { spawnItem('star'); starT = rand(3.5, 6.5); }
@@ -849,10 +876,13 @@
       const bw = bossSprites[boss.type].width, bob = Math.sin(boss.ph * 3) * 4;
       if (boss.beam) {   // laser: thin warning line first, then the beam
         const bm = boss.beam, top = boss.y + boss.r * 0.5;
-        if (!bm.on) { if (Math.floor(bm.t * 12) % 2 === 0) { ctx.fillStyle = 'rgba(255,61,90,.8)'; for (let yy = top; yy < H; yy += 24) ctx.fillRect(bm.x - 2, yy, 4, 12); } }
-        else { ctx.shadowColor = '#ff3da8'; ctx.shadowBlur = 18; ctx.fillStyle = '#ff3da8'; ctx.fillRect(bm.x - 17, top, 34, H - top); ctx.fillStyle = '#ffffff'; ctx.fillRect(bm.x - 7, top, 14, H - top); ctx.shadowBlur = 0; }
+        bm.xs.forEach((bx) => {
+          if (!bm.on) { if (Math.floor(bm.t * 12) % 2 === 0) { ctx.fillStyle = 'rgba(255,61,90,.8)'; for (let yy = top; yy < H; yy += 24) ctx.fillRect(bx - 2, yy, 4, 12); } }
+          else { ctx.shadowColor = '#ff3da8'; ctx.shadowBlur = 18; ctx.fillStyle = '#ff3da8'; ctx.fillRect(bx - 17, top, 34, H - top); ctx.fillStyle = '#ffffff'; ctx.fillRect(bx - 7, top, 14, H - top); ctx.shadowBlur = 0; }
+        });
       }
       ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(bossSprites[boss.type], boss.x - bw / 2, boss.y - bw / 2 + bob); ctx.restore();
+      if (boss.muzzle > 0) { const my = Math.round(boss.y + boss.r * 0.7 + bob); ctx.fillStyle = '#ffd36b'; ctx.fillRect(Math.round(boss.x) - 14, my, 28, 8); ctx.fillStyle = '#ff9a4d'; ctx.fillRect(Math.round(boss.x) - 8, my + 8, 16, 8); ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(boss.x) - 4, my, 8, 4); }
       if (boss.hit > 0) { ctx.save(); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = 0.5; ctx.drawImage(bossFlashSprites[boss.type], boss.x - bw / 2, boss.y - bw / 2 + bob); ctx.restore(); }
     }
     ctx.shadowColor = '#ff3da8'; ctx.shadowBlur = 8;
@@ -1074,7 +1104,7 @@
 
   // small hook used by the automated tests (read-only helpers; no effect on normal play)
   window.MeteorDodge = {
-    get: () => ({ W, state, score, lives, stars, shield, squad, squadT, rapid, theme: themeIdx, themeFade, holes: holes.length, unlocked: [...unlocked].join(','), combo, bestCombo, shipId, boss: boss ? { hp: boss.hp, max: boss.max, x: boss.x, y: boss.y } : null, bossKills, enemies: enemies.length, ebullets: EB.filter((e) => e.a).length, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
+    get: () => ({ W, state, score, lives, stars, shield, squad, squadT, rapid, theme: themeIdx, themeFade, holes: holes.length, unlocked: [...unlocked].join(','), combo, bestCombo, shipId, boss: boss ? { hp: boss.hp, max: boss.max, x: boss.x, y: boss.y, phase: boss.phase } : null, bossKills, enemies: enemies.length, ebullets: EB.filter((e) => e.a).length, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
     step: update, startGame, pauseGame, resumeGame, ship, meteors, items, keys, bullets: B,
     spawnMeteor, spawnItem, spawnBoss, spawnEnemy, spawnHole, setTheme: (i) => { themeIdx = nextTheme = i; themeFade = 1; paintNebula(nebula, THEMES[i]); }, holeList: holes, unlock, enemyList: enemies, eb: EB, destroy, music, setShip: (id) => { shipId = id; ship.r = SHIPS[id].r; }
   };

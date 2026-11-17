@@ -30,13 +30,14 @@ Free. No sign-up. Works on PC and phone. Fills the whole screen.
 - **Combo:** break meteors one after another to raise your score multiplier, up to x5. Getting hit resets it.
 - The game speeds up every 15 seconds.
 - Pick **Easy**, **Normal** or **Hard** on the menu. Your best score is saved in your browser.
+- When the game ends you see your score, stars, bosses beaten and best combo.
 
 ## THINGS THAT FIGHT BACK
 
 | | |
 |---|---|
 | **UFOs** | Small red saucers fly across and shoot at you. Shoot them for points and a chance at a power-up. |
-| **Bosses** | A big boss drops in about every minute. **Magma King** throws meteors. **Ice Eye** fires fans of bullets. **Laser Skull** fires beams, so watch for the red warning line. Beat one for 500 points, three stars and an extra life if you lost one. |
+| **Bosses** | A big boss drops in about every minute and gets angrier at 2/3 and 1/3 health. **Magma King** throws meteors, then rains a wall of them (find the gap). **Ice Eye** fires fans of bullets and throws meteors. **Laser Skull** fires beams (watch the red warning line, two beams at the end) and throws meteors. Beat one for 500 points, three stars and an extra life if you lost one. |
 | **Black holes** | After about 20 seconds a black hole sometimes drifts down. It pulls your ship, bends meteors and swallows stars and power-ups. Stay away from the dark centre. |
 
 ## POWER-UPS
@@ -80,6 +81,11 @@ python -m http.server 8080
 ```
 
 Then go to `http://localhost:8080`.
+
+## PHONE TIPS
+
+- On an iPhone, open the site in Safari and use Share > Add to Home Screen for the full-screen app.
+- If something looks wrong in the installed app, tap the "METEOR" title 5 times on the menu. It shows the screen sizes the phone reports.
 
 ## BUILT WITH
 
