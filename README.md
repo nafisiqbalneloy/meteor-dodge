@@ -4,6 +4,8 @@
 
 A tiny retro space arcade game. Dodge meteors, shoot UFOs, beat bosses, survive as long as you can.
 
+Developed by **neelfish**.
+
 **[>> PLAY NOW <<](https://nafisiqbalneloy.github.io/meteor-dodge/)**
 
 Free. No sign-up. Works on PC and phone. Fills the whole screen.

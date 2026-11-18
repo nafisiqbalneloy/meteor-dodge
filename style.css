@@ -228,3 +228,7 @@ html.fonts-ready #app { opacity: 1; transition: opacity .12s linear; }
 
 .menu-main .title { animation: float 3.6s steps(8) infinite; }
 @media (prefers-reduced-motion: reduce) { .menu-main .title { animation: none; } }
+
+/* credit line on the home menu */
+.credit { position: absolute; left: 0; right: 0; bottom: calc(14 * var(--u) + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: calc(9 * var(--u)); color: #b9c4ff; text-shadow: calc(2 * var(--u)) calc(2 * var(--u)) 0 #000; pointer-events: none; }
+#menu:not([data-view="home"]) .credit { display: none; }
