@@ -19,7 +19,7 @@ Free. No sign-up. Works on PC and phone. Fills the whole screen.
 | Pause | Esc | Pause button |
 | Fullscreen | F | Fullscreen button |
 
-- **Touch pad:** phones start with the on-screen buttons off. Turn them on with the TOUCH PAD button on the menu.
+- **Touch pad:** phones start with the on-screen buttons off. Turn them on with the TOUCH PAD button in Settings.
 - **Gamepad:** plug one in. Stick or D-pad to move, A / X / triggers to shoot, Start to pause.
 
 ## HOW TO PLAY
@@ -29,9 +29,19 @@ Free. No sign-up. Works on PC and phone. Fills the whole screen.
 - **Stars** are worth 50 points.
 - **Combo:** break meteors one after another to raise your score multiplier, up to x5. Getting hit resets it.
 - The game speeds up every 15 seconds.
-- The menu is simple: **PLAY NOW**, then tiles for **Difficulty**, **Ship**, **Settings**, **How to play** and **Fullscreen**. Each one opens its own page (Fullscreen just switches). Meteors, stars, UFOs, shooting stars, bosses and a swirling black hole drift around behind the buttons.
 - Your best score, unlocked ships and choices are saved in your browser.
 - When the game ends you see your score, stars, bosses beaten and best combo.
+
+## THE MENU
+
+**PLAY NOW**, then five tiles:
+- **Difficulty:** Easy, Normal or Hard.
+- **Ship:** pick your ship (see SHIPS below).
+- **Settings:** sound, music, touch pad (phones) and share.
+- **How to play:** the quick rules.
+- **Fullscreen:** one tap to go fullscreen (not on iPhone).
+
+Each page stays open when you choose something. Press BACK to return. Meteors, stars, UFOs, shooting stars, bosses and a swirling black hole drift around behind the buttons.
 
 ## THINGS THAT FIGHT BACK
 
