@@ -50,6 +50,7 @@
   { const b0 = parseInt(store.get('best', '0'), 10) || 0; if (b0 >= 1500) unlocked.add('dart'); if (b0 >= 5000) unlocked.add('void'); }
   let shipId = store.get('ship', 'star'); if (!SHIPS[shipId] || !unlocked.has(shipId)) shipId = 'star';
   let musicOn = store.get('music', '1') === '1';
+  let audioUnlocked = false;                      // browsers only allow sound after the first tap or key press
   const COMBO_SECS = 2.2;
   let difficulty = store.get('difficulty', 'normal'); if (!DIFF[difficulty]) difficulty = 'normal';
   let soundOn = store.get('sound', '1') === '1';
@@ -141,21 +142,28 @@
 
   // Tiny chiptune loop made with oscillators (Am - F - C - G). Faster during a boss fight.
   const BASS = [110, 87.31, 130.81, 98], ARP = [[440, 523.25, 659.25], [349.23, 440, 523.25], [523.25, 659.25, 784], [392, 493.88, 587.33]];
+  // Menu theme (D minor, slow synthwave): chords Dm - Bb - F - C, a bass line, soft pads, an arpeggio, a lead melody with echo and light drums
+  const M_BASS = [73.42, 58.27, 87.31, 65.41];
+  const M_CHORD = [[293.66, 349.23, 440], [233.08, 293.66, 349.23], [261.63, 349.23, 440], [261.63, 329.63, 392]];
+  const M_ARP = [[146.83, 174.61, 220, 293.66], [116.54, 146.83, 174.61, 233.08], [130.81, 174.61, 220, 261.63], [130.81, 164.81, 196, 261.63]];
+  const M_LEAD = { 0: [440, 6], 6: [349.23, 2], 8: [440, 4], 12: [587.33, 4], 16: [587.33, 6], 22: [523.25, 2], 24: [466.16, 4], 28: [587.33, 4],
+    32: [523.25, 6], 38: [440, 2], 40: [349.23, 4], 44: [440, 4], 48: [392, 4], 52: [659.25, 4], 56: [587.33, 4], 60: [523.25, 4] };
   const music = {
-    on: false, timer: 0, step: 0, next: 0,
+    on: false, mode: 'game', timer: 0, step: 0, next: 0,
     note(f, dur, type, vol, at, slide) {
       const o = ac.createOscillator(), g = ac.createGain();
       o.type = type; o.frequency.setValueAtTime(f, at); if (slide) o.frequency.exponentialRampToValueAtTime(slide, at + dur);
       g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(vol, at + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
       o.connect(g); g.connect(ac.destination); o.start(at); o.stop(at + dur + 0.02);
     },
-    hat(at) {
-      const n = Math.floor(ac.sampleRate * 0.04), buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+    noiseHit(at, dur, kind, vol) {
+      const n = Math.floor(ac.sampleRate * dur), buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
       for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
-      const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 6000; g.gain.value = 0.03;
+      const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter(); f.type = kind; f.frequency.value = kind === 'highpass' ? 6000 : 1800; g.gain.value = vol;
       s.buffer = buf; s.connect(f); f.connect(g); g.connect(ac.destination); s.start(at);
     },
-    play(step, at) {
+    hat(at) { this.noiseHit(at, 0.04, 'highpass', 0.03); },
+    playGame(step, at) {
       const bar = Math.floor(step / 16) % 4, k = step % 16, fast = !!boss;
       if (k % 2 === 0) this.note(BASS[bar] * (fast && k % 4 === 2 ? 2 : 1), 0.16, fast ? 'sawtooth' : 'triangle', fast ? 0.035 : 0.06, at);
       const ar = ARP[bar], pat = [0, 1, 2, 1, 0, 1, 2, 2][k % 8];
@@ -163,16 +171,39 @@
       if (k % 8 === 0) this.note(130, 0.14, 'sine', 0.12, at, 40);
       if (k % 2 === 1) this.hat(at);
     },
+    playMenu(step, at) {
+      const st = step % 64, bar = Math.floor(st / 16), k = st % 16, beat = 0.163 * 4;
+      if (k === 0) { M_CHORD[bar].forEach((f) => this.note(f, beat * 4 * 0.95, 'triangle', 0.016, at)); }                 // soft pad, one chord per bar
+      if (k % 4 === 0) this.note(M_BASS[bar], 0.34, 'triangle', 0.075, at);                                              // bass on every beat
+      if (k % 4 === 2) this.note(M_BASS[bar] * 2, 0.16, 'triangle', 0.03, at);                                           // little octave bounce
+      const ar = M_ARP[bar]; this.note(ar[[0, 1, 2, 3, 2, 1, 2, 3][k % 8]] * 2, 0.22, 'sine', k % 4 === 0 ? 0.03 : 0.018, at);   // glittering arpeggio
+      const lead = M_LEAD[st];
+      if (lead) {                                                                                                       // lead melody + an echo 3 steps later
+        const dur = lead[1] * 0.163;
+        this.note(lead[0], dur, 'square', 0.026, at); this.note(lead[0] * 2, dur * 0.6, 'sine', 0.012, at);
+        this.note(lead[0], dur * 0.8, 'square', 0.009, at + 0.163 * 3);
+      }
+      if (k % 4 === 0) this.note(120, 0.18, 'sine', 0.11, at, 42);                                                       // soft kick
+      if (k === 4 || k === 12) this.noiseHit(at, 0.1, 'bandpass', 0.05);                                                 // snare
+      if (k % 2 === 1) this.hat(at);
+    },
     tick() {
       if (!this.on) return;
       if (!ac || !soundOn || !musicOn) { this.stop(); return; }
-      const dur = boss ? 0.105 : 0.14;
-      while (this.next < ac.currentTime + 0.3) { this.play(this.step, Math.max(this.next, ac.currentTime)); this.next += dur; this.step++; }
+      const dur = this.mode === 'menu' ? 0.163 : (boss ? 0.105 : 0.14);
+      while (this.next < ac.currentTime + 0.3) {
+        const at = Math.max(this.next, ac.currentTime);
+        if (this.mode === 'menu') this.playMenu(this.step, at); else this.playGame(this.step, at);
+        this.next += dur; this.step++;
+      }
     },
-    start() {
-      if (this.on || !soundOn || !musicOn) return;
+    start(mode) {
+      mode = mode || 'game';
+      if (this.on && this.mode === mode) return;
+      if (this.on) this.stop();
+      if (!soundOn || !musicOn) return;
       const a = audio(); if (!a) return;
-      this.on = true; this.step = 0; this.next = a.currentTime + 0.12; this.timer = setInterval(() => this.tick(), 80);
+      this.mode = mode; this.on = true; this.step = 0; this.next = a.currentTime + 0.12; this.timer = setInterval(() => this.tick(), 80);
     },
     stop() { this.on = false; if (this.timer) clearInterval(this.timer); this.timer = 0; }
   };
@@ -316,7 +347,7 @@
 
   /* ---------------- UI state ---------------- */
   function setState(s) {
-    state = s; if (s === 'playing') music.start(); else music.stop();
+    state = s; if (s === 'playing') music.start('game'); else if (s === 'menu' && audioUnlocked) music.start('menu'); else music.stop();
     if (s !== 'menu') setView('home');
     stage.classList.remove('state-menu', 'state-playing', 'state-paused', 'state-dying', 'state-over');
     stage.classList.add('state-' + (s === 'dying' ? 'playing' : s));
@@ -593,28 +624,35 @@
   const deco = []; let decoT = 0;
   function spawnDeco(anywhere) {
     const r = Math.random(), y0 = anywhere ? rand(0, H) : -60;
-    if (r < 0.58) {
-      const si = Math.random() < 0.4 ? 0 : Math.random() < 0.6 ? 1 : 2;
-      deco.push({ k: 'm', spr: sprites[Math.floor(Math.random() * 3)][si], x: rand(0, W), y: y0, vx: rand(-18, 18), vy: rand(22, 50), rot: Math.floor(Math.random() * 4) * 1.5708, rt: rand(1, 3), a: 0.85 });
-    } else if (r < 0.78) {
-      deco.push({ k: 's', x: rand(20, W - 20), y: y0, vx: rand(-10, 10), vy: rand(24, 44), ph: Math.random() * 6, a: 0.95 });
-    } else if (r < 0.94) {
+    if (r < 0.48) {                                                                       // meteors: from the top or drifting in from the sides
+      const si = Math.random() < 0.4 ? 0 : Math.random() < 0.6 ? 1 : 2, side = !anywhere && Math.random() < 0.4, dir = Math.random() < 0.5 ? 1 : -1;
+      deco.push({ k: 'm', spr: sprites[Math.floor(Math.random() * 3)][si], x: side ? (dir > 0 ? -50 : W + 50) : rand(0, W), y: side ? rand(40, H * 0.8) : y0,
+        vx: side ? dir * rand(20, 40) : rand(-18, 18), vy: side ? rand(-8, 22) : rand(26, 54), rot: Math.floor(Math.random() * 4) * 1.5708, rt: rand(0.8, 2.2), ph: Math.random() * 6, a: 0.85 });
+    } else if (r < 0.66) {                                                                // stars
+      deco.push({ k: 's', x: rand(20, W - 20), y: y0, vx: rand(-10, 10), vy: rand(24, 46), ph: Math.random() * 6, a: 0.95 });
+    } else if (r < 0.82) {                                                                // UFOs crossing
       const dir = Math.random() < 0.5 ? 1 : -1, y = rand(50, H * 0.8);
-      deco.push({ k: 'u', x: anywhere ? rand(0, W) : (dir > 0 ? -40 : W + 40), y, by: y, vx: dir * rand(45, 80), vy: 0, ph: Math.random() * 6, a: 0.9 });
-    } else if (!deco.some((d) => d.k === 'b')) {
+      deco.push({ k: 'u', x: anywhere ? rand(0, W) : (dir > 0 ? -40 : W + 40), y, by: y, vx: dir * rand(45, 85), vy: 0, ph: Math.random() * 6, a: 0.9 });
+    } else if (r < 0.9) {                                                                 // a shooting star
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      deco.push({ k: 'c', x: dir > 0 ? rand(-60, W * 0.4) : rand(W * 0.6, W + 60), y: rand(-30, H * 0.5), vx: dir * rand(190, 280), vy: rand(110, 190), ph: 0, a: 1 });
+    } else if (r < 0.95) {                                                                // a slowly swirling black hole
+      if (!deco.some((d) => d.k === 'h')) deco.push({ k: 'h', x: rand(90, Math.max(100, W - 90)), y: anywhere ? rand(80, H - 80) : -90, vx: 0, vy: 15, core: 22, pull: 150, ph: Math.random() * 6, sw: rand(0.4, 0.9), a: 1 });
+    } else if (!deco.some((d) => d.k === 'b')) {                                          // a faint boss floating by
       deco.push({ k: 'b', type: Math.floor(Math.random() * 3), x: rand(100, Math.max(110, W - 100)), y: anywhere ? rand(60, H - 60) : -90, vx: rand(-9, 9), vy: 17, ph: 0, a: 0.5 });
     }
   }
   function stepDeco(dt) {
-    if (!deco.length) for (let i = 0; i < (W > 900 ? 12 : 8); i++) spawnDeco(true);
+    if (!deco.length) { for (let i = 0; i < (W > 900 ? 13 : 9); i++) spawnDeco(true); if (!deco.some((d) => d.k === 'h')) deco.push({ k: 'h', x: W * 0.2, y: H * 0.3, vx: 0, vy: 15, core: 22, pull: 150, ph: 0, sw: 0.6, a: 1 }); }
     decoT -= dt;
-    if (decoT <= 0 && deco.length < (W > 900 ? 18 : 11)) { spawnDeco(false); decoT = rand(0.6, 1.5) * (W > 900 ? 0.6 : 1); }
+    if (decoT <= 0 && deco.length < (W > 900 ? 20 : 12)) { spawnDeco(false); decoT = rand(0.5, 1.3) * (W > 900 ? 0.6 : 1); }
     for (let i = deco.length - 1; i >= 0; i--) {
-      const d = deco[i]; d.x += d.vx * dt; d.y += d.vy * dt;
-      if (d.ph !== undefined) d.ph += dt;
+      const d = deco[i]; d.ph = (d.ph || 0) + dt; d.x += d.vx * dt; d.y += d.vy * dt;
       if (d.k === 'u') d.y = d.by + Math.sin(d.ph * 2.2) * 14;
-      if (d.k === 'm') { d.rt -= dt; if (d.rt <= 0) { d.rot += 1.5708; d.rt = rand(1.2, 3); } }
-      if (d.y > H + 120 || d.x < -160 || d.x > W + 160) deco.splice(i, 1);
+      else if (d.k === 'm') { d.x += Math.sin(d.ph * 0.8) * 9 * dt; d.rt -= dt; if (d.rt <= 0) { d.rot += 1.5708; d.rt = rand(0.8, 2.2); } }
+      else if (d.k === 's' || d.k === 'b') d.x += Math.sin(d.ph * 0.7) * 10 * dt;
+      else if (d.k === 'h') d.x += Math.sin(d.ph * d.sw) * 14 * dt;
+      if (d.y > H + 140 || d.y < -200 || d.x < -170 || d.x > W + 170) deco.splice(i, 1);
     }
   }
   function drawDeco() {
@@ -624,7 +662,12 @@
       if (d.k === 'm') { ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot); ctx.drawImage(d.spr, -d.spr.width / 2, -d.spr.height / 2); ctx.restore(); }
       else if (d.k === 's') { ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(Math.sin(d.ph) * 0.35); const k = 1 + Math.sin(d.ph * 1.5) * 0.1; ctx.scale(k, k); ctx.shadowColor = '#ffd36b'; ctx.shadowBlur = 14; ctx.fillStyle = '#ffe28a'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; starPath(16); ctx.fill(); ctx.stroke(); ctx.restore(); }
       else if (d.k === 'u') ctx.drawImage(ufoSprite, Math.round(d.x - ufoSprite.width / 2), Math.round(d.y - ufoSprite.height / 2));
-      else if (d.k === 'b') { const bs = bossSprites[d.type], w = bs.width * 0.8; ctx.drawImage(bs, d.x - w / 2, d.y - w / 2, w, w); }
+      else if (d.k === 'b') { const bs = bossSprites[d.type], w = bs.width * 0.8; ctx.drawImage(bs, d.x - w / 2, d.y - w / 2 + Math.sin(d.ph * 1.5) * 4, w, w); }
+      else if (d.k === 'h') drawHole(d);
+      else if (d.k === 'c') {                                                                  // shooting star: bright head with a fading pixel tail
+        const L = Math.hypot(d.vx, d.vy), ux = d.vx / L, uy = d.vy / L;
+        for (let t2 = 0; t2 < 9; t2++) { ctx.globalAlpha = (1 - t2 / 9) * 0.9; ctx.fillStyle = t2 < 2 ? '#ffffff' : t2 < 5 ? '#9ff3ff' : '#22d3ff'; const sz = 5 - t2 * 0.3; ctx.fillRect(Math.round(d.x - ux * t2 * 9 - sz / 2), Math.round(d.y - uy * t2 * 9 - sz / 2), sz, sz); }
+      }
     }
     ctx.restore();
   }
@@ -1087,11 +1130,11 @@
   click('btnPlay', startGame); click('btnAgain', startGame); click('btnRestart', startGame);
   click('btnPause', pauseGame); click('btnResume', resumeGame);
   click('btnPauseMenu', toMenu); click('btnOverMenu', toMenu);
-  click('btnSound', () => { soundOn = !soundOn; store.set('sound', soundOn ? '1' : '0'); refreshMenu(); if (soundOn) sfx.star(); });
+  click('btnSound', () => { soundOn = !soundOn; store.set('sound', soundOn ? '1' : '0'); refreshMenu(); if (soundOn) { sfx.star(); if (state === 'menu') music.start('menu'); } else music.stop(); });
   click('btnDiffMenu', () => setView('diff')); click('btnShipMenu', () => setView('ship'));
   click('btnSettingsMenu', () => setView('settings')); click('btnHow', () => setView('how'));
   document.querySelectorAll('.back-btn').forEach((b) => on(b, 'click', () => setView('home')));
-  click('btnMusic', () => { musicOn = !musicOn; store.set('music', musicOn ? '1' : '0'); refreshMenu(); if (!musicOn) music.stop(); });
+  click('btnMusic', () => { musicOn = !musicOn; store.set('music', musicOn ? '1' : '0'); refreshMenu(); if (!musicOn) music.stop(); else if (state === 'menu') music.start('menu'); });
   document.querySelectorAll('.ship-btn').forEach((b) => on(b, 'click', () => {
     const id = b.dataset.ship;
     if (!unlocked.has(id)) return;   // still locked: the button already shows how to unlock it
@@ -1116,6 +1159,11 @@
       box.style.display = 'block'; probe.remove();
     });
   }
+
+  /* ---------------- Menu music: starts on the first tap / key press, and pauses when the tab is hidden ---------------- */
+  const unlockAudio = () => { audioUnlocked = true; if (state === 'menu') music.start('menu'); };
+  on(document, 'pointerdown', unlockAudio); on(document, 'keydown', unlockAudio);
+  on(document, 'visibilitychange', () => { if (document.hidden) music.stop(); else if (state === 'menu' && audioUnlocked) music.start('menu'); });
 
   /* ---------------- Fullscreen ---------------- */
   function toggleFullscreen() {

@@ -29,7 +29,7 @@ Free. No sign-up. Works on PC and phone. Fills the whole screen.
 - **Stars** are worth 50 points.
 - **Combo:** break meteors one after another to raise your score multiplier, up to x5. Getting hit resets it.
 - The game speeds up every 15 seconds.
-- The menu is simple: **PLAY NOW**, then tiles for **Difficulty**, **Ship**, **Settings**, **How to play** and **Fullscreen**. Each one opens its own page (Fullscreen just switches). Meteors, stars, UFOs and bosses drift around behind the buttons.
+- The menu is simple: **PLAY NOW**, then tiles for **Difficulty**, **Ship**, **Settings**, **How to play** and **Fullscreen**. Each one opens its own page (Fullscreen just switches). Meteors, stars, UFOs, shooting stars, bosses and a swirling black hole drift around behind the buttons.
 - Your best score, unlocked ships and choices are saved in your browser.
 - When the game ends you see your score, stars, bosses beaten and best combo.
 
@@ -67,7 +67,7 @@ About every 30 seconds (2 levels) the sky changes: Deep Space (purple), Toxic Ne
 
 ## EXTRAS
 
-- **Music and sound** are made in code. Use the SOUND and MUSIC buttons to turn them off.
+- **Music and sound** are made in code. A slow synthwave theme plays on the menu (it starts on your first tap or key press, because browsers do not allow sound before that), and a faster tune plays while you fly. Use the SOUND and MUSIC buttons in Settings to turn them off.
 - **Vibration:** phones that support it buzz on hits and boss fights. SOUND off turns it off too. (iPhones do not support this.)
 - **Install it:** use your browser's "Install" or "Add to Home Screen" to play it like an app, even offline.
 
