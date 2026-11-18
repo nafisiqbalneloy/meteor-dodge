@@ -177,19 +177,43 @@ canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: 
   .screen { transition-duration: .01s; }
 }
 
-/* ---------- Phone layout: the how-to list lives on its own page, so the main menu stays roomy ---------- */
+/* ---------- Menu pages: home, level, difficulty, ship, settings, how to play ---------- */
 .narrow-only, .how-back { display: none; }
-#stage:not(.wide-layout) .narrow-only { display: inline-block; }
-#stage:not(.wide-layout) #menu .how { display: none; width: calc(440 * var(--u)); max-width: 96%; padding: calc(16 * var(--u)) calc(18 * var(--u)); }
+#menu .menu-main, #menu .menu-panel, #menu .how { display: none; }
+#menu[data-view="home"] .menu-main { display: flex; }
+#menu[data-view="level"] #panelLevel, #menu[data-view="diff"] #panelDiff, #menu[data-view="ship"] #panelShip, #menu[data-view="settings"] #panelSettings { display: flex; }
+#menu[data-view="how"] .how { display: block; }
+.wide-layout #menu[data-view="home"] .how { display: block; }
+.how { width: calc(440 * var(--u)); max-width: 96%; padding: calc(16 * var(--u)) calc(18 * var(--u)); }
+#stage:not(.wide-layout) .tile.narrow-only { display: flex; }
 #stage:not(.wide-layout) #menu .how h2 { font-size: calc(14 * var(--u)); margin-bottom: calc(12 * var(--u)); }
-#stage:not(.wide-layout) #menu .how ul { font-size: calc(11 * var(--u)); line-height: 2.05; }
+#stage:not(.wide-layout) #menu .how ul { font-size: calc(11 * var(--u)); line-height: 2; }
 #stage:not(.wide-layout) #menu .how .how-back { display: block; margin: calc(14 * var(--u)) auto 0; }
-#stage:not(.wide-layout) #menu.show-how .menu-main { display: none; }
-#stage:not(.wide-layout) #menu.show-how .how { display: block; }
 #stage:not(.wide-layout) .menu-main { gap: calc(12 * var(--u)); }
+.wide-layout .how { width: calc(430 * var(--u)); }
+
+.menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: calc(10 * var(--u)); width: calc(390 * var(--u)); max-width: 100%; }
+.tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(7 * var(--u)); min-width: 0; padding: calc(12 * var(--u)) calc(8 * var(--u)); }
+.tile .k { font-size: calc(8 * var(--u)); color: #b9c4ff; }
+.tile .v { font-size: calc(11 * var(--u)); color: #fff; }
+.tile.narrow-only { grid-column: 1 / -1; }
+
+.menu-panel { flex-direction: column; align-items: center; gap: calc(14 * var(--u)); width: calc(440 * var(--u)); max-width: 96%; }
+.menu-panel h2 { margin: 0; font-size: calc(18 * var(--u)); font-weight: 400; color: var(--purple); text-shadow: calc(3 * var(--u)) calc(3 * var(--u)) 0 #000; }
+.panel-note { margin: calc(-6 * var(--u)) 0 0; font-size: calc(9 * var(--u)); color: #b9c4ff; }
+.opt-list { display: flex; flex-direction: column; gap: calc(10 * var(--u)); width: 100%; }
+.opt-btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: calc(7 * var(--u)); width: 100%; min-height: 44px; cursor: pointer; text-align: left;
+  padding: calc(13 * var(--u)) calc(16 * var(--u)); color: #d9ddff; border: calc(3 * var(--u)) solid rgba(168, 85, 247, .6); border-radius: 0; background: rgba(168, 85, 247, .1);
+}
+.opt-btn b { font-weight: 400; font-size: calc(14 * var(--u)); }
+.opt-btn small { font-size: calc(9 * var(--u)); color: #b9c4ff; line-height: 1.5; }
+.opt-btn[aria-checked="true"] { color: #fff; border-color: var(--purple); background: rgba(168, 85, 247, .5); box-shadow: calc(3 * var(--u)) calc(3 * var(--u)) 0 #000; }
+.opt-btn.locked { opacity: .5; }
+.opt-btn.locked::after { content: none; }
+.settings-list .btn { width: 100%; }
 
 .diff-btn.locked { opacity: .4; }
-.diff-btn.locked::after { content: ' ?'; }
 
 /* iPhone home-screen app: page box as tall as the real screen (the height is set from JS) */
 html.ios-standalone, html.ios-standalone body { height: var(--screen-h); }
@@ -198,3 +222,5 @@ html.ios-standalone #app { position: absolute; top: 0; left: 0; right: 0; bottom
 /* hide the page for a moment until the pixel font is ready (JS adds .fonts-ready; no-JS visitors still see it) */
 html:not(.fonts-ready) #app { opacity: 0; }
 html.fonts-ready #app { opacity: 1; transition: opacity .12s linear; }
+
+#stage.wide-layout .tile.narrow-only { display: none; }

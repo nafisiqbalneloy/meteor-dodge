@@ -50,6 +50,8 @@
   { const b0 = parseInt(store.get('best', '0'), 10) || 0; if (b0 >= 1500) unlocked.add('dart'); if (b0 >= 5000) unlocked.add('void'); }
   let shipId = store.get('ship', 'star'); if (!SHIPS[shipId] || !unlocked.has(shipId)) shipId = 'star';
   let musicOn = store.get('music', '1') === '1';
+  let bestLevel = parseInt(store.get('bestLevel', '0'), 10) || 0;      // highest level reached (0 = level 1)
+  let startSel = parseInt(store.get('startTheme', '0'), 10) || 0;      // sky chosen on the menu
   const COMBO_SECS = 2.2;
   let difficulty = store.get('difficulty', 'normal'); if (!DIFF[difficulty]) difficulty = 'normal';
   let soundOn = store.get('sound', '1') === '1';
@@ -215,6 +217,12 @@
   function buildNebula() { paintNebula(nebula, THEMES[themeIdx]); if (themeFade < 1) paintNebula(nebulaNext, THEMES[nextTheme]); }
   buildNebula();
   function startTheme(ti) { nextTheme = ti; paintNebula(nebulaNext, THEMES[ti]); themeFade = 0; }
+  const levelUnlocked = (i) => i === 0 || bestLevel >= i * THEME_LEVELS;
+  function startAtLevel() {                      // begin the run in the sky chosen on the menu (only skies you reached are allowed)
+    const sel = THEMES[startSel] && levelUnlocked(startSel) ? startSel : 0, lv = sel * THEME_LEVELS;
+    level = lv; t = lv * LEVEL_SECS;
+    if (themeIdx !== sel || themeFade < 1) { themeIdx = sel; nextTheme = sel; themeFade = 1; paintNebula(nebula, THEMES[sel]); }
+  }
   function resetTheme() { if (themeIdx !== 0 || themeFade < 1) { themeIdx = 0; nextTheme = 0; themeFade = 1; paintNebula(nebula, THEMES[0]); } }
   function pickPal() {
     const w = THEMES[themeIdx].pal, tot = w[0] + w[1] + w[2]; let r = Math.random() * tot;
@@ -317,7 +325,7 @@
   /* ---------------- UI state ---------------- */
   function setState(s) {
     state = s; if (s === 'playing') music.start(); else music.stop();
-    if (s !== 'menu') screens.menu.classList.remove('show-how');
+    if (s !== 'menu') setView('home');
     stage.classList.remove('state-menu', 'state-playing', 'state-paused', 'state-dying', 'state-over');
     stage.classList.add('state-' + (s === 'dying' ? 'playing' : s));
     screens.menu.classList.toggle('active', s === 'menu');
@@ -330,7 +338,15 @@
     const sb = $('btnSound'); sb.textContent = 'SOUND: ' + (soundOn ? 'ON' : 'OFF'); sb.setAttribute('aria-pressed', String(soundOn));
     const mb = $('btnMusic'); mb.textContent = 'MUSIC: ' + (musicOn ? 'ON' : 'OFF'); mb.setAttribute('aria-pressed', String(musicOn));
     document.querySelectorAll('.ship-btn').forEach((b) => { const id = b.dataset.ship; b.setAttribute('aria-checked', String(id === shipId)); b.classList.toggle('locked', !unlocked.has(id)); });
-    $('shipDesc').textContent = unlocked.has(shipId) ? SHIPS[shipId].desc : UNLOCK_HINT[shipId]; drawPreview();
+    document.querySelectorAll('.ship-btn').forEach((b) => { const id = b.dataset.ship; b.querySelector('small').textContent = unlocked.has(id) ? SHIPS[id].desc : UNLOCK_HINT[id]; });
+    if (!THEMES[startSel] || !levelUnlocked(startSel)) startSel = 0;
+    $('vDiff').textContent = DIFF[difficulty].label.toUpperCase(); $('vShip').textContent = SHIPS[shipId].name; $('vLevel').textContent = THEMES[startSel].name;
+    document.querySelectorAll('.level-btn').forEach((b) => {
+      const i = +b.dataset.level, ok = levelUnlocked(i), n = i * THEME_LEVELS + 1;
+      b.setAttribute('aria-checked', String(i === startSel)); b.classList.toggle('locked', !ok);
+      b.querySelector('small').textContent = ok ? 'START AT LEVEL ' + n : 'REACH LEVEL ' + n + ' TO UNLOCK';
+    });
+    drawPreview();
     const pb = $('btnPadToggle'); pb.textContent = 'TOUCH PAD: ' + (padOn ? 'ON' : 'OFF'); pb.setAttribute('aria-pressed', String(padOn));
     stage.classList.toggle('pad-on', padOn);
   }
@@ -338,6 +354,7 @@
     const c = $('shipPreview'); if (!c) return; const g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height); g.imageSmoothingEnabled = false;
     g.drawImage(shipSprites[shipId], 0, 0);
   }
+  function setView(v) { screens.menu.dataset.view = v; }
   function renderLives() { [...livesEl.children].forEach((el, i) => el.classList.toggle('lost', i >= lives)); }
   function renderHud() {
     const s = Math.floor(shownScore);
@@ -364,7 +381,7 @@
     fireT = 0.15; keys.fire = false; padFire = false; fireQueued = false; squad = 0; squadT = 0; wingSpawnT = 14; rapid = 0; rapidSpawnT = 22; bombSpawnT = 30;
     enemies.length = 0; EB.forEach((e) => { e.a = false; }); enemyT = 24; combo = 0; comboT = 0; bestCombo = 0; boss = null; bossT = DIFF[difficulty].bossFirst; bossKills = 0; POPS.forEach((p) => { p.a = false; });
     if (!unlocked.has(shipId)) shipId = 'star';
-    ship.r = SHIPS[shipId].r; resetTheme(); holes.length = 0; holeT = 22;
+    ship.r = SHIPS[shipId].r; startAtLevel(); holes.length = 0; holeT = 22;
     $('newBest').classList.add('hidden');
     renderLives(); renderHud(); hudBest.textContent = fmt(best);
     setState('playing'); sfx.start();
@@ -609,7 +626,7 @@
     // level-up feedback
     const lv = Math.floor(t / LEVEL_SECS);
     if (lv > level) {
-      level = lv;
+      level = lv; if (level > bestLevel) { bestLevel = level; store.set('bestLevel', level); }
       const ti = Math.floor(level / THEME_LEVELS) % THEMES.length;
       if (ti !== nextTheme) { startTheme(ti); toast('LEVEL ' + (level + 1) + ': ' + THEMES[ti].name, 2000); }
       else toast('SPEED UP!  LEVEL ' + (level + 1), 1300);
@@ -1043,16 +1060,22 @@
   click('btnPause', pauseGame); click('btnResume', resumeGame);
   click('btnPauseMenu', toMenu); click('btnOverMenu', toMenu);
   click('btnSound', () => { soundOn = !soundOn; store.set('sound', soundOn ? '1' : '0'); refreshMenu(); if (soundOn) sfx.star(); });
-  click('btnHow', () => screens.menu.classList.add('show-how')); click('btnHowBack', () => screens.menu.classList.remove('show-how'));
+  click('btnLevelMenu', () => setView('level')); click('btnDiffMenu', () => setView('diff')); click('btnShipMenu', () => setView('ship'));
+  click('btnSettingsMenu', () => setView('settings')); click('btnHow', () => setView('how'));
+  document.querySelectorAll('.back-btn').forEach((b) => on(b, 'click', () => setView('home')));
+  document.querySelectorAll('.level-btn').forEach((b) => on(b, 'click', () => {
+    const i = +b.dataset.level; if (!levelUnlocked(i)) return;
+    startSel = i; store.set('startTheme', i); refreshMenu(); setView('home');
+  }));
   click('btnMusic', () => { musicOn = !musicOn; store.set('music', musicOn ? '1' : '0'); refreshMenu(); if (!musicOn) music.stop(); });
   document.querySelectorAll('.ship-btn').forEach((b) => on(b, 'click', () => {
     const id = b.dataset.ship;
-    if (!unlocked.has(id)) { $('shipDesc').textContent = UNLOCK_HINT[id]; return; }   // still locked: just show how to unlock it
-    shipId = id; store.set('ship', shipId); refreshMenu();
+    if (!unlocked.has(id)) return;   // still locked: the button already shows how to unlock it
+    shipId = id; store.set('ship', shipId); refreshMenu(); setView('home');
   }));
   click('btnPadToggle', () => { padOn = !padOn; store.set('pad2', padOn ? '1' : '0'); refreshMenu(); });
   click('btnShare', () => share(false)); click('btnShare2', () => share(true));
-  document.querySelectorAll('.diff-btn:not(.ship-btn)').forEach((b) => on(b, 'click', () => { difficulty = b.dataset.diff; store.set('difficulty', difficulty); refreshMenu(); }));
+  document.querySelectorAll('.diff-btn:not(.ship-btn)').forEach((b) => on(b, 'click', () => { difficulty = b.dataset.diff; store.set('difficulty', difficulty); refreshMenu(); setView('home'); }));
 
   /* ---------------- Hidden info panel (tap the title 5 times) ---------------- */
   { let taps = 0, tapT = 0;
@@ -1118,6 +1141,6 @@
   window.MeteorDodge = {
     get: () => ({ W, state, score, lives, stars, shield, squad, squadT, rapid, theme: themeIdx, themeFade, holes: holes.length, unlocked: [...unlocked].join(','), combo, bestCombo, shipId, boss: boss ? { hp: boss.hp, max: boss.max, x: boss.x, y: boss.y, phase: boss.phase } : null, bossKills, enemies: enemies.length, ebullets: EB.filter((e) => e.a).length, invuln, level, t, best, shipX: ship.x, meteors: meteors.length, items: items.length, rafId, difficulty }),
     step: update, startGame, pauseGame, resumeGame, ship, meteors, items, keys, bullets: B,
-    spawnMeteor, spawnItem, spawnBoss, spawnEnemy, spawnHole, setTheme: (i) => { themeIdx = nextTheme = i; themeFade = 1; paintNebula(nebula, THEMES[i]); }, holeList: holes, unlock, enemyList: enemies, eb: EB, destroy, music, setShip: (id) => { shipId = id; ship.r = SHIPS[id].r; }
+    spawnMeteor, spawnItem, spawnBoss, spawnEnemy, setView, spawnHole, setTheme: (i) => { themeIdx = nextTheme = i; themeFade = 1; paintNebula(nebula, THEMES[i]); }, holeList: holes, unlock, enemyList: enemies, eb: EB, destroy, music, setShip: (id) => { shipId = id; ship.r = SHIPS[id].r; }
   };
 })();

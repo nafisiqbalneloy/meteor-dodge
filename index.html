@@ -26,7 +26,7 @@
 <meta name="twitter:image" content="https://nafisiqbalneloy.github.io/meteor-dodge/og-image-v2.png">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="preload" href="assets/PressStart2P-Regular.ttf" as="font" type="font/ttf" crossorigin>
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
 <div id="app">
@@ -60,37 +60,71 @@
     <div id="toast" class="toast"></div>
 
     <!-- MAIN MENU -->
-    <section id="menu" class="screen active">
+    <section id="menu" class="screen active" data-view="home">
+      <!-- HOME -->
       <div class="menu-main">
-      <h1 class="title"><span>METEOR</span><span>DODGE</span></h1>
-      <canvas id="shipPreview" class="hero-ship" width="48" height="48" aria-hidden="true"></canvas>
+        <h1 class="title"><span>METEOR</span><span>DODGE</span></h1>
+        <canvas id="shipPreview" class="hero-ship" width="48" height="48" aria-hidden="true"></canvas>
+        <div class="menu-best">BEST SCORE <b id="menuBest">0</b></div>
 
-      <div class="menu-best">BEST SCORE <b id="menuBest">0</b></div>
+        <button id="btnPlay" class="btn primary">PLAY NOW</button>
 
-      <div class="diff" role="radiogroup" aria-label="Ship">
-        <button class="diff-btn ship-btn" data-ship="star" role="radio">STAR</button>
-        <button class="diff-btn ship-btn" data-ship="dart" role="radio">DART</button>
-        <button class="diff-btn ship-btn" data-ship="tank" role="radio">TANK</button>
-        <button class="diff-btn ship-btn" data-ship="void" role="radio">VOID</button>
-      </div>
-      <div id="shipDesc" class="ship-desc">BALANCED ALL-ROUNDER</div>
-
-      <div class="diff" role="radiogroup" aria-label="Difficulty">
-        <button class="diff-btn" data-diff="easy" role="radio">EASY</button>
-        <button class="diff-btn" data-diff="normal" role="radio">NORMAL</button>
-        <button class="diff-btn" data-diff="hard" role="radio">HARD</button>
+        <div class="menu-grid">
+          <button id="btnLevelMenu" class="btn small tile"><span class="k">LEVEL</span><span class="v" id="vLevel">DEEP SPACE</span></button>
+          <button id="btnDiffMenu" class="btn small tile"><span class="k">DIFFICULTY</span><span class="v" id="vDiff">NORMAL</span></button>
+          <button id="btnShipMenu" class="btn small tile"><span class="k">SHIP</span><span class="v" id="vShip">STAR</span></button>
+          <button id="btnSettingsMenu" class="btn small tile"><span class="k">SETTINGS</span><span class="v">SOUND / MORE</span></button>
+          <button id="btnHow" class="btn small tile narrow-only"><span class="v">HOW TO PLAY</span></button>
+        </div>
       </div>
 
-      <button id="btnPlay" class="btn primary">PLAY NOW</button>
-
-      <div class="row">
-        <button id="btnHow" class="btn small narrow-only">HOW TO PLAY</button>
-        <button id="btnSound" class="btn small" aria-pressed="true">SOUND: ON</button>
-        <button id="btnMusic" class="btn small" aria-pressed="true">MUSIC: ON</button>
-        <button id="btnPadToggle" class="btn small touch-only" aria-pressed="true">TOUCH PAD: ON</button>
-        <button id="btnShare" class="btn small">SHARE</button>
-        <button id="btnFull" class="btn small">FULLSCREEN</button>
+      <!-- LEVEL -->
+      <div id="panelLevel" class="menu-panel">
+        <h2>CHOOSE LEVEL</h2>
+        <p class="panel-note">START IN A SKY YOU HAVE ALREADY REACHED</p>
+        <div class="opt-list" role="radiogroup" aria-label="Start level">
+          <button class="opt-btn level-btn" data-level="0" role="radio"><b>DEEP SPACE</b><small></small></button>
+          <button class="opt-btn level-btn" data-level="1" role="radio"><b>TOXIC NEBULA</b><small></small></button>
+          <button class="opt-btn level-btn" data-level="2" role="radio"><b>ICE FIELD</b><small></small></button>
+          <button class="opt-btn level-btn" data-level="3" role="radio"><b>LAVA ZONE</b><small></small></button>
+        </div>
+        <button class="btn small back-btn">BACK</button>
       </div>
+
+      <!-- DIFFICULTY -->
+      <div id="panelDiff" class="menu-panel">
+        <h2>DIFFICULTY</h2>
+        <div class="opt-list" role="radiogroup" aria-label="Difficulty">
+          <button class="opt-btn diff-btn" data-diff="easy" role="radio"><b>EASY</b><small>RELAXED. SLOWER, FEWER METEORS</small></button>
+          <button class="opt-btn diff-btn" data-diff="normal" role="radio"><b>NORMAL</b><small>THE REAL GAME</small></button>
+          <button class="opt-btn diff-btn" data-diff="hard" role="radio"><b>HARD</b><small>FAST AND MEAN. TOUGHER BOSSES</small></button>
+        </div>
+        <button class="btn small back-btn">BACK</button>
+      </div>
+
+      <!-- SHIP -->
+      <div id="panelShip" class="menu-panel">
+        <h2>CHOOSE SHIP</h2>
+        <div class="opt-list" role="radiogroup" aria-label="Ship">
+          <button class="opt-btn diff-btn ship-btn" data-ship="star" role="radio"><b>STAR</b><small></small></button>
+          <button class="opt-btn diff-btn ship-btn" data-ship="dart" role="radio"><b>DART</b><small></small></button>
+          <button class="opt-btn diff-btn ship-btn" data-ship="tank" role="radio"><b>TANK</b><small></small></button>
+          <button class="opt-btn diff-btn ship-btn" data-ship="void" role="radio"><b>VOID</b><small></small></button>
+        </div>
+        <button class="btn small back-btn">BACK</button>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="panelSettings" class="menu-panel">
+        <h2>SETTINGS</h2>
+        <div class="opt-list settings-list">
+          <button id="btnSound" class="btn small" aria-pressed="true">SOUND: ON</button>
+          <button id="btnMusic" class="btn small" aria-pressed="true">MUSIC: ON</button>
+          <button id="btnPadToggle" class="btn small touch-only" aria-pressed="true">TOUCH PAD: ON</button>
+          <button id="btnFull" class="btn small">FULLSCREEN</button>
+          <button id="btnShare" class="btn small">SHARE THE GAME</button>
+        </div>
+        <button class="btn small back-btn">BACK</button>
       </div>
 
       <div class="how">
@@ -109,9 +143,10 @@
           <li><b class="c-red">BOSS</b> 3 KINDS. WIN A LIFE</li>
           <li><b class="c-purple">HOLE</b> PULLS YOU. EATS ITEMS</li>
           <li><b class="c-cyan">SHIPS</b> EARN MORE. PICK ON MENU</li>
+          <li><b class="c-gold">LEVEL</b> START IN A SKY YOU REACHED</li>
           <li><b class="c-gold">PAUSE</b> ESC &nbsp;<b class="c-cyan">FULL</b> F</li>
         </ul>
-        <button id="btnHowBack" class="btn small how-back">BACK</button>
+        <button id="btnHowBack" class="btn small how-back back-btn">BACK</button>
       </div>
     </section>
 
@@ -141,6 +176,6 @@
   </div>
 </div>
 <noscript><style>html:not(.fonts-ready) #app{opacity:1!important}</style><p class="noscript">METEOR DODGE needs JavaScript enabled.</p></noscript>
-<script src="game.js?v=23"></script>
+<script src="game.js?v=24"></script>
 </body>
 </html>
