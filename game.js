@@ -365,7 +365,7 @@
     ship.x = W / 2; ship.vx = 0; pointerX = null; padDir = 0;
     meteors.length = 0; items.length = 0; P.forEach((p) => { p.a = false; }); B.forEach((b) => { b.a = false; });
     fireT = 0.15; keys.fire = false; padFire = false; fireQueued = false; squad = 0; squadT = 0; wingSpawnT = 14; rapid = 0; rapidSpawnT = 22; bombSpawnT = 30;
-    enemies.length = 0; EB.forEach((e) => { e.a = false; }); enemyT = 24; combo = 0; comboT = 0; bestCombo = 0; boss = null; bossT = DIFF[difficulty].bossFirst; bossKills = 0; POPS.forEach((p) => { p.a = false; });
+    deco.length = 0; enemies.length = 0; EB.forEach((e) => { e.a = false; }); enemyT = 24; combo = 0; comboT = 0; bestCombo = 0; boss = null; bossT = DIFF[difficulty].bossFirst; bossKills = 0; POPS.forEach((p) => { p.a = false; });
     if (!unlocked.has(shipId)) shipId = 'star';
     ship.r = SHIPS[shipId].r; resetTheme(); holes.length = 0; holeT = 22;
     $('newBest').classList.add('hidden');
@@ -589,6 +589,46 @@
     meteors.length = 0;
   }
 
+  /* ---------------- Menu decoration: meteors, stars, UFOs and bosses drifting behind the buttons ---------------- */
+  const deco = []; let decoT = 0;
+  function spawnDeco(anywhere) {
+    const r = Math.random(), y0 = anywhere ? rand(0, H) : -60;
+    if (r < 0.58) {
+      const si = Math.random() < 0.4 ? 0 : Math.random() < 0.6 ? 1 : 2;
+      deco.push({ k: 'm', spr: sprites[Math.floor(Math.random() * 3)][si], x: rand(0, W), y: y0, vx: rand(-18, 18), vy: rand(22, 50), rot: Math.floor(Math.random() * 4) * 1.5708, rt: rand(1, 3), a: 0.85 });
+    } else if (r < 0.78) {
+      deco.push({ k: 's', x: rand(20, W - 20), y: y0, vx: rand(-10, 10), vy: rand(24, 44), ph: Math.random() * 6, a: 0.95 });
+    } else if (r < 0.94) {
+      const dir = Math.random() < 0.5 ? 1 : -1, y = rand(50, H * 0.8);
+      deco.push({ k: 'u', x: anywhere ? rand(0, W) : (dir > 0 ? -40 : W + 40), y, by: y, vx: dir * rand(45, 80), vy: 0, ph: Math.random() * 6, a: 0.9 });
+    } else if (!deco.some((d) => d.k === 'b')) {
+      deco.push({ k: 'b', type: Math.floor(Math.random() * 3), x: rand(100, Math.max(110, W - 100)), y: anywhere ? rand(60, H - 60) : -90, vx: rand(-9, 9), vy: 17, ph: 0, a: 0.5 });
+    }
+  }
+  function stepDeco(dt) {
+    if (!deco.length) for (let i = 0; i < (W > 900 ? 12 : 8); i++) spawnDeco(true);
+    decoT -= dt;
+    if (decoT <= 0 && deco.length < (W > 900 ? 18 : 11)) { spawnDeco(false); decoT = rand(0.6, 1.5) * (W > 900 ? 0.6 : 1); }
+    for (let i = deco.length - 1; i >= 0; i--) {
+      const d = deco[i]; d.x += d.vx * dt; d.y += d.vy * dt;
+      if (d.ph !== undefined) d.ph += dt;
+      if (d.k === 'u') d.y = d.by + Math.sin(d.ph * 2.2) * 14;
+      if (d.k === 'm') { d.rt -= dt; if (d.rt <= 0) { d.rot += 1.5708; d.rt = rand(1.2, 3); } }
+      if (d.y > H + 120 || d.x < -160 || d.x > W + 160) deco.splice(i, 1);
+    }
+  }
+  function drawDeco() {
+    ctx.save(); ctx.imageSmoothingEnabled = false;
+    for (let i = 0; i < deco.length; i++) {
+      const d = deco[i]; ctx.globalAlpha = d.a;
+      if (d.k === 'm') { ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot); ctx.drawImage(d.spr, -d.spr.width / 2, -d.spr.height / 2); ctx.restore(); }
+      else if (d.k === 's') { ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(Math.sin(d.ph) * 0.35); const k = 1 + Math.sin(d.ph * 1.5) * 0.1; ctx.scale(k, k); ctx.shadowColor = '#ffd36b'; ctx.shadowBlur = 14; ctx.fillStyle = '#ffe28a'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; starPath(16); ctx.fill(); ctx.stroke(); ctx.restore(); }
+      else if (d.k === 'u') ctx.drawImage(ufoSprite, Math.round(d.x - ufoSprite.width / 2), Math.round(d.y - ufoSprite.height / 2));
+      else if (d.k === 'b') { const bs = bossSprites[d.type], w = bs.width * 0.8; ctx.drawImage(bs, d.x - w / 2, d.y - w / 2, w, w); }
+    }
+    ctx.restore();
+  }
+
   /* ---------------- Update ---------------- */
   function update(dt) {
     // background always scrolls
@@ -605,6 +645,7 @@
     if (state === 'dying') {
       stepWorld(dt, false); dyingT -= dt; if (dyingT <= 0) endGame(); return;
     }
+    if (state === 'menu') { stepDeco(dt); return; }
     if (state !== 'playing') return;
 
     t += dt;
@@ -877,6 +918,7 @@
     }
     ctx.globalAlpha = 1;
     for (let i = 0; i < holes.length; i++) drawHole(holes[i]);
+    if (state === 'menu') drawDeco();
     for (let i = 0; i < items.length; i++) drawItem(items[i]);
     for (let i = 0; i < meteors.length; i++) {
       const m = meteors[i]; ctx.save(); ctx.imageSmoothingEnabled = false; if (m.fire) { ctx.shadowColor = '#ff7a2a'; ctx.shadowBlur = 14; } ctx.translate(m.x, m.y); ctx.rotate(m.rot); ctx.drawImage(m.spr, -m.spr.width / 2, -m.spr.height / 2); ctx.restore();
@@ -981,7 +1023,6 @@
     stage.style.width = sw + 'px'; stage.style.height = sh + 'px';
     stage.style.setProperty('--u', scale + 'px');
     stage.classList.toggle('wide-layout', W >= 800);
-    stage.classList.toggle('tall-layout', W < 800 && H >= 900);   // tall phones have room to show the how-to list on the home menu
     const pw = Math.round(sw * dpr), ph = Math.round(sh * dpr);
     if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph; }
     ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);

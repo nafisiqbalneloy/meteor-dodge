@@ -183,9 +183,7 @@ canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: 
 #menu[data-view="home"] .menu-main { display: flex; }
 #menu[data-view="diff"] #panelDiff, #menu[data-view="ship"] #panelShip, #menu[data-view="settings"] #panelSettings { display: flex; }
 #menu[data-view="how"] .how { display: block; }
-.wide-layout #menu[data-view="home"] .how { display: block; }
 .how { width: calc(440 * var(--u)); max-width: 96%; padding: calc(16 * var(--u)) calc(18 * var(--u)); }
-#stage:not(.wide-layout) .tile.narrow-only { display: flex; }
 #stage:not(.wide-layout) #menu .how h2 { font-size: calc(14 * var(--u)); margin-bottom: calc(12 * var(--u)); }
 #stage:not(.wide-layout) #menu .how ul { font-size: calc(11 * var(--u)); line-height: 2; }
 #stage:not(.wide-layout) #menu .how .how-back { display: block; margin: calc(14 * var(--u)) auto 0; }
@@ -222,15 +220,8 @@ html.ios-standalone #app { position: absolute; top: 0; left: 0; right: 0; bottom
 html:not(.fonts-ready) #app { opacity: 0; }
 html.fonts-ready #app { opacity: 1; transition: opacity .12s linear; }
 
-#stage.wide-layout .tile.narrow-only { display: none; }
-
-#stage.wide-layout .menu-grid { grid-template-columns: repeat(3, 1fr); width: calc(470 * var(--u)); }
-
-/* tall phones: the how-to list is back on the home menu, under the tiles */
-#stage.tall-layout #menu[data-view="home"] .how { display: block; padding: calc(12 * var(--u)) calc(16 * var(--u)); }
-#stage.tall-layout #menu .how h2 { font-size: calc(12 * var(--u)); margin-bottom: calc(8 * var(--u)); }
-#stage.tall-layout #menu .how ul { font-size: calc(9.5 * var(--u)); line-height: 1.85; }
-#stage.tall-layout #menu .how .how-back, #stage.tall-layout .tile.narrow-only { display: none; }
-#stage.tall-layout .menu-grid { grid-template-columns: repeat(3, 1fr); width: calc(440 * var(--u)); }
-#stage.tall-layout #menu { gap: calc(14 * var(--u)); }
-#stage.tall-layout .menu-main { gap: calc(10 * var(--u)); }
+/* how to play: always its own page (button on the home menu), on every screen */
+#menu[data-view="how"] .how .how-back { display: block; margin: calc(14 * var(--u)) auto 0; }
+#menu .how h2 { font-size: calc(14 * var(--u)); margin-bottom: calc(12 * var(--u)); }
+#menu .how ul { font-size: calc(11 * var(--u)); line-height: 2; }
+.menu-grid .tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
