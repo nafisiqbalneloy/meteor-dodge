@@ -981,6 +981,7 @@
     stage.style.width = sw + 'px'; stage.style.height = sh + 'px';
     stage.style.setProperty('--u', scale + 'px');
     stage.classList.toggle('wide-layout', W >= 800);
+    stage.classList.toggle('tall-layout', W < 800 && H >= 900);   // tall phones have room to show the how-to list on the home menu
     const pw = Math.round(sw * dpr), ph = Math.round(sh * dpr);
     if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph; }
     ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);

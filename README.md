@@ -29,7 +29,7 @@ Free. No sign-up. Works on PC and phone. Fills the whole screen.
 - **Stars** are worth 50 points.
 - **Combo:** break meteors one after another to raise your score multiplier, up to x5. Getting hit resets it.
 - The game speeds up every 15 seconds.
-- The menu is simple: **PLAY NOW**, then three tiles: **Difficulty** (Easy, Normal, Hard), **Ship** and **Settings** (plus **How to play** on phones). Each tile opens its own page with a BACK button.
+- The menu is simple: **PLAY NOW**, then three tiles: **Difficulty** (Easy, Normal, Hard), **Ship** and **Settings**. Each tile opens its own page with a BACK button. The how-to list sits on the home screen on PC and on tall phones; on small screens it is a **How to play** tile.
 - Your best score, unlocked ships and choices are saved in your browser.
 - When the game ends you see your score, stars, bosses beaten and best combo.
 

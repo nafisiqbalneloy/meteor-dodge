@@ -225,3 +225,12 @@ html.fonts-ready #app { opacity: 1; transition: opacity .12s linear; }
 #stage.wide-layout .tile.narrow-only { display: none; }
 
 #stage.wide-layout .menu-grid { grid-template-columns: repeat(3, 1fr); width: calc(470 * var(--u)); }
+
+/* tall phones: the how-to list is back on the home menu, under the tiles */
+#stage.tall-layout #menu[data-view="home"] .how { display: block; padding: calc(12 * var(--u)) calc(16 * var(--u)); }
+#stage.tall-layout #menu .how h2 { font-size: calc(12 * var(--u)); margin-bottom: calc(8 * var(--u)); }
+#stage.tall-layout #menu .how ul { font-size: calc(9.5 * var(--u)); line-height: 1.85; }
+#stage.tall-layout #menu .how .how-back, #stage.tall-layout .tile.narrow-only { display: none; }
+#stage.tall-layout .menu-grid { grid-template-columns: repeat(3, 1fr); width: calc(440 * var(--u)); }
+#stage.tall-layout #menu { gap: calc(14 * var(--u)); }
+#stage.tall-layout .menu-main { gap: calc(10 * var(--u)); }
