@@ -26,7 +26,7 @@
 <meta name="twitter:image" content="https://nafisiqbalneloy.github.io/meteor-dodge/og-image-v2.png">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="preload" href="assets/PressStart2P-Regular.ttf" as="font" type="font/ttf" crossorigin>
-<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
 <div id="app">
@@ -70,25 +70,11 @@
         <button id="btnPlay" class="btn primary">PLAY NOW</button>
 
         <div class="menu-grid">
-          <button id="btnLevelMenu" class="btn small tile"><span class="k">LEVEL</span><span class="v" id="vLevel">DEEP SPACE</span></button>
           <button id="btnDiffMenu" class="btn small tile"><span class="k">DIFFICULTY</span><span class="v" id="vDiff">NORMAL</span></button>
           <button id="btnShipMenu" class="btn small tile"><span class="k">SHIP</span><span class="v" id="vShip">STAR</span></button>
-          <button id="btnSettingsMenu" class="btn small tile"><span class="k">SETTINGS</span><span class="v">SOUND / MORE</span></button>
+          <button id="btnSettingsMenu" class="btn small tile"><span class="k">SETTINGS</span><span class="v">OPTIONS</span></button>
           <button id="btnHow" class="btn small tile narrow-only"><span class="v">HOW TO PLAY</span></button>
         </div>
-      </div>
-
-      <!-- LEVEL -->
-      <div id="panelLevel" class="menu-panel">
-        <h2>CHOOSE LEVEL</h2>
-        <p class="panel-note">START IN A SKY YOU HAVE ALREADY REACHED</p>
-        <div class="opt-list" role="radiogroup" aria-label="Start level">
-          <button class="opt-btn level-btn" data-level="0" role="radio"><b>DEEP SPACE</b><small></small></button>
-          <button class="opt-btn level-btn" data-level="1" role="radio"><b>TOXIC NEBULA</b><small></small></button>
-          <button class="opt-btn level-btn" data-level="2" role="radio"><b>ICE FIELD</b><small></small></button>
-          <button class="opt-btn level-btn" data-level="3" role="radio"><b>LAVA ZONE</b><small></small></button>
-        </div>
-        <button class="btn small back-btn">BACK</button>
       </div>
 
       <!-- DIFFICULTY -->
@@ -143,7 +129,6 @@
           <li><b class="c-red">BOSS</b> 3 KINDS. WIN A LIFE</li>
           <li><b class="c-purple">HOLE</b> PULLS YOU. EATS ITEMS</li>
           <li><b class="c-cyan">SHIPS</b> EARN MORE. PICK ON MENU</li>
-          <li><b class="c-gold">LEVEL</b> START IN A SKY YOU REACHED</li>
           <li><b class="c-gold">PAUSE</b> ESC &nbsp;<b class="c-cyan">FULL</b> F</li>
         </ul>
         <button id="btnHowBack" class="btn small how-back back-btn">BACK</button>
@@ -176,6 +161,6 @@
   </div>
 </div>
 <noscript><style>html:not(.fonts-ready) #app{opacity:1!important}</style><p class="noscript">METEOR DODGE needs JavaScript enabled.</p></noscript>
-<script src="game.js?v=24"></script>
+<script src="game.js?v=25"></script>
 </body>
 </html>

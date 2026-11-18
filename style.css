@@ -181,7 +181,7 @@ canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: 
 .narrow-only, .how-back { display: none; }
 #menu .menu-main, #menu .menu-panel, #menu .how { display: none; }
 #menu[data-view="home"] .menu-main { display: flex; }
-#menu[data-view="level"] #panelLevel, #menu[data-view="diff"] #panelDiff, #menu[data-view="ship"] #panelShip, #menu[data-view="settings"] #panelSettings { display: flex; }
+#menu[data-view="diff"] #panelDiff, #menu[data-view="ship"] #panelShip, #menu[data-view="settings"] #panelSettings { display: flex; }
 #menu[data-view="how"] .how { display: block; }
 .wide-layout #menu[data-view="home"] .how { display: block; }
 .how { width: calc(440 * var(--u)); max-width: 96%; padding: calc(16 * var(--u)) calc(18 * var(--u)); }
@@ -196,7 +196,6 @@ canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: 
 .tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(7 * var(--u)); min-width: 0; padding: calc(12 * var(--u)) calc(8 * var(--u)); }
 .tile .k { font-size: calc(8 * var(--u)); color: #b9c4ff; }
 .tile .v { font-size: calc(11 * var(--u)); color: #fff; }
-.tile.narrow-only { grid-column: 1 / -1; }
 
 .menu-panel { flex-direction: column; align-items: center; gap: calc(14 * var(--u)); width: calc(440 * var(--u)); max-width: 96%; }
 .menu-panel h2 { margin: 0; font-size: calc(18 * var(--u)); font-weight: 400; color: var(--purple); text-shadow: calc(3 * var(--u)) calc(3 * var(--u)) 0 #000; }
@@ -224,3 +223,5 @@ html:not(.fonts-ready) #app { opacity: 0; }
 html.fonts-ready #app { opacity: 1; transition: opacity .12s linear; }
 
 #stage.wide-layout .tile.narrow-only { display: none; }
+
+#stage.wide-layout .menu-grid { grid-template-columns: repeat(3, 1fr); width: calc(470 * var(--u)); }
